@@ -71,7 +71,7 @@ pass$sendKeysToElement(list(password))
 signin_button <- remDr$findElement(using = "id", value = "submitBtn")
 signin_button$highlightElement()
 signin_button$clickElement()
-Sys.sleep(7)
+Sys.sleep(5)
 otherbutton <- remDr$findElement(using = 'xpath', value = "//a[contains(text(), 'Other options')]")
 otherbutton$clickElement()
 Sys.sleep(1.5)
@@ -107,31 +107,58 @@ pages <- vector("list", length(links))
 emailpages <- vector("list", length(links))
 for (i in seq_along(links)) {
   remDr$navigate(paste0("https://heellife.unc.edu", links[i]))
-  Sys.sleep(1)
+  #Sys.sleep(0.5)
   page_raw <- remDr$getPageSource()
   html_raw <- xml2::read_html(page_raw[[1]])
   pages[[i]] <- html_raw
+  position_nodes <- remDr$findElements(using = "xpath", "//div[contains(@style, 'font-size: 14px;') and contains(@style, 'font-weight: bold;')]")
+  emailpages[[i]] <- vector("list", length(position_nodes))
+  for (j in seq_along(position_nodes)){
+    position_nodes[[j]]$highlightElement()
+    position_nodes[[j]]$clickElement()
+    Sys.sleep(0.1)
+    emails_raw <- remDr$getPageSource()
+    htmlemails_raw <- xml2::read_html(emails_raw[[1]])
+    emailpages[[i]][[j]] <- htmlemails_raw
+    esc_button <- remDr$findElement(using = "xpath", "//button[contains(@class, 'MuiButtonBase-root') or contains(@class, 'MuiIconButton-root') or @aria-label='Close']")
+    esc_button$highlightElement()
+    esc_button$clickElement()
+  }
 }
 org_info <- data_frame()
 for (i in seq_along(pages)) {
   organization <- html_text(html_nodes(pages[[i]], xpath = "//h1[contains(@style, 'padding: 13px 0px 0px 85px;')]"), trim = TRUE)
-  description_node <- html_nodes(pages[[i]], xpath = "//div[contains(@class, 'bodyText-large userSupplied')]")
-  if (!is_empty(description_node)) {
-    temp_description <- html_text(description_node, trim = TRUE)
-    description <- if (temp_description != "") {
-      temp_description
+  position_nodes <- html_nodes(pages[[i]], xpath = "//div[contains(@style, 'font-size: 14px;') and contains(@style, 'font-weight: bold;')]")
+  positions <- html_text(position_nodes, trim = TRUE)
+  name_nodes <- html_nodes(pages[[i]], xpath = "//div[contains(@style, 'margin: 5px 0px;') and contains(@style, 'font-size: 17px;')]")
+  names <- html_text(name_nodes, trim = TRUE)
+  emails <- vector("list", length(position_nodes))
+  for (j in seq_along(position_nodes)){
+    email_nodes <- html_nodes(emailpages[[i]][[j]], xpath = "//a[starts-with(@href, 'mailto:') and @tabindex='0']")
+    email_nodes_str <- as.character(email_nodes)
+    ordered_emails <- email_nodes_str[grepl("tabindex=\"0\".*href=\"mailto:", email_nodes_str)]
+    ordered_emails_nodes <- html_nodes(read_html(paste0("<div>", ordered_emails, "</div>")), "a")
+    if (!is_empty(email_nodes)) {
+      emails[[j]] <- html_text(ordered_emails_nodes, trim = TRUE)
     } else {
-      NA
+      emails[[j]] <- NA
     }
-  } else {
-    description <- NA
   }
+  emails <- unlist(emails)
   new_org <- data_frame(
-    Organization = organization,
-    Description = description
+    Organization = rep(organization, length(positions)),
+    Position = positions,
+    Name = names,
+    Email = emails
   )
   org_info <- rbind(org_info, new_org)
 }
+write.csv(org_info, file = "./UNC Contacts List.csv")
+# Perform actions on the website (e.g., click links, fill out forms, scrape data)
+Sys.sleep(1000)
+# Close the browser when done
+remDr$close()
+rD$server$stop()
 ```
 
 ```{r}
