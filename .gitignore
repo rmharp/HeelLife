@@ -1,6 +1,31 @@
-.Rproj.user
+# R temporary files
 .Rhistory
-.Rdata
-.httr-oauth
+.RData
+.Rproj.user/
+.Renviron
+
+# R package build files
+*.Rcheck/
+..Rcheck/
+*.tar.gz
+* .tgz
+
+# Vignette build files
+vignettes/*.html
+vignettes/*.pdf
+
+# pkgdown site
+docs/
+pkgdown/
+_pkgdown.yml
+_pkgdown.yaml
+
+# RStudio files
+.rstudio-persistent/
+
+# OS-specific files
 .DS_Store
-.quarto
+Thumbs.db
+
+# Credentials
+.env

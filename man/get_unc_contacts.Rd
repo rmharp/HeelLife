@@ -11,8 +11,8 @@ get_unc_contacts(username, password, output_file = "unc_contacts.csv")
 
 \item{password}{Your UNC password associated with the ONYEN.}
 
-\item{output_file}{A string specifying the path to save the resulting CSV file.
-Defaults to "unc_contacts.csv" in the current working directory.}
+\item{output_file}{The path to save the output CSV file. Defaults to 
+"unc_contacts.csv" in the current working directory.}
 }
 \value{
 A data frame (`tibble`) containing the scraped contact information with

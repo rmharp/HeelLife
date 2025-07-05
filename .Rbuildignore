@@ -1,8 +1,11 @@
 ^.*\.Rproj$
-^\.Rproj\.user$
-^\.env$
-^HeelLife\.Rproj$
+^\.Rproj\.user/
+^\.git/
+^\.github/
+^\.Rbuildignore$
+^\.gitignore$
 ^cran-comments\.md$
 ^README\.Rmd$
 ^LICENSE\.md$
-^\.github$
+^docs/
+^\.env$

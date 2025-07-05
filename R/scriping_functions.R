@@ -21,8 +21,8 @@
 #'
 #' @param username Your UNC ONYEN (username).
 #' @param password Your UNC password associated with the ONYEN.
-#' @param output_file A string specifying the path to save the resulting CSV file.
-#'        Defaults to "unc_contacts.csv" in the current working directory.
+#' @param output_file The path to save the output CSV file. Defaults to 
+#'        "unc_contacts.csv" in the current working directory.
 #' @return A data frame (`tibble`) containing the scraped contact information with
 #'   columns: `Organization`, `Position`, `Name`, and `Email`. The function also
 #'   writes this data frame to a CSV file specified by `output_file`.
