@@ -23,7 +23,7 @@ You can install the development version from GitHub with:
 
 ```r
 # install.packages("devtools")
-devtools::install_github("YOUR-USERNAME/HeelLife")
+devtools::install_github("rmharp/HeelLife")
 ```
 
 ## Usage
