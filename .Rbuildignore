@@ -1,0 +1,7 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^\.env$
+^HeelLife\.Rproj$
+^cran-comments\.md$
+^README\.Rmd$
+^LICENSE\.md$

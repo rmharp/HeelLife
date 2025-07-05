@@ -1,0 +1,90 @@
+---
+title: "Using the HeelLife Package"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Using the HeelLife Package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Introduction
+
+The `HeelLife` package provides a single, powerful function, `get_unc_contacts()`, to automate the process of scraping student organization contact data from the UNC Chapel Hill 'Heel Life' website. This vignette will walk you through the necessary setup and usage.
+
+## Prerequisites
+
+Before using the package, you must have **Mozilla Firefox** installed on your computer. The package's scraping engine relies on the `RSelenium` package, which will programmatically control a Firefox browser to perform the scraping task.
+
+## Installation
+
+First, install the `HeelLife` package. If it's on CRAN, you can run:
+```r
+install.packages("HeelLife")
+```
+Alternatively, you can install the development version from GitHub:
+```r
+# install.packages("devtools")
+devtools::install_github("YOUR-USERNAME/HeelLife")
+```
+
+## Storing Credentials Securely
+
+The `get_unc_contacts()` function requires your UNC ONYEN and password. To avoid writing them directly in your script, we strongly recommend using environment variables. The `dotenv` package is excellent for this.
+
+1.  Create a file named `.env` in your project's root directory.
+2.  Add your credentials to this file:
+    ```
+    ONYEN_USERNAME="your_onyen"
+    ONYEN_PASSWORD="your_password"
+    ```
+3.  Ensure this `.env` file is listed in your `.gitignore` file to prevent it from being committed to version control.
+
+## Running the Scraper
+
+With your credentials stored, you can now run the scraper.
+
+```{r, eval=FALSE}
+library(HeelLife)
+library(dotenv)
+
+# Load credentials from the .env file
+load_dot_env()
+
+my_username <- Sys.getenv("ONYEN_USERNAME")
+my_password <- Sys.getenv("ONYEN_PASSWORD")
+
+# Check if credentials were loaded
+if (!nzchar(my_username) || !nzchar(my_password)) {
+  stop("Please set ONYEN_USERNAME and ONYEN_PASSWORD in a .env file.")
+}
+
+# Execute the scraping function
+# This will open a Firefox window and prompt you for MFA in the R console.
+contacts_df <- get_unc_contacts(
+  username = my_username,
+  password = my_password,
+  output_file = "heellife_data.csv"
+)
+
+# The function returns a data frame and saves it to a CSV.
+# You can now work with the data in R.
+head(contacts_df)
+```
+
+## The Output
+
+The function returns a `tibble` (a modern data frame) with the following columns:
+
+* **Organization**: The name of the student organization.
+* **Position**: The title of the contact person (e.g., "President", "Treasurer").
+* **Name**: The name of the contact person.
+* **Email**: The email address of the contact person.
+
+This data is also saved to the CSV file specified in the `output_file` argument for later use.
