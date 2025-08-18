@@ -79,7 +79,7 @@ get_unc_contacts <- function(username, password, output_file = "unc_contacts.csv
   
   # --- 1. Setup Selenium Server ---
   message("Starting Selenium server with Firefox...")
-  rD <- rsDriver(browser = "firefox", chromever = NULL, port = netstat::free_port(), verbose = FALSE)
+  rD <- rsDriver(browser = "firefox", chromever = NULL, phantomver = NULL, port = netstat::free_port(), verbose = FALSE)
   remDr <- rD$client
   
   # Ensure the browser closes on exit
