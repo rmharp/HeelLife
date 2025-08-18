@@ -676,13 +676,18 @@ create_dept_email_template <- function(from_name,
   # Build the HTML email
   if (nchar(custom_message) > 0) {
     # If custom message is provided, create minimal HTML structure around user's message
-    # Split the custom message into lines and wrap each in <p> tags
-    message_lines <- strsplit(custom_message, "\n")[[1]]
-    message_paragraphs <- paste0("<p>", message_lines, "</p>", collapse = "")
+    # Convert newlines to <br> tags for single paragraph, or use as-is if no newlines
+    if (grepl("\n", custom_message)) {
+      # Multiple lines: wrap in single paragraph with <br> tags
+      message_content <- paste0("<p>", gsub("\n", "<br>", custom_message), "</p>")
+    } else {
+      # Single line: wrap in paragraph
+      message_content <- paste0("<p>", custom_message, "</p>")
+    }
     
     html_content <- paste0(
       "<html><head><style>body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; color: black; line-height: 1.6; }</style></head><body>",
-      message_paragraphs,
+      message_content,
       "</body></html>"
     )
   } else {
