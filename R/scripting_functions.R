@@ -676,13 +676,13 @@ create_dept_email_template <- function(from_name,
   # Build the HTML email
   if (nchar(custom_message) > 0) {
     # If custom message is provided, create minimal HTML structure around user's message
-    # Convert newlines to <br> tags for single paragraph, or use as-is if no newlines
+    # Convert newlines to <br> tags but don't wrap in paragraph tags
     if (grepl("\n", custom_message)) {
-      # Multiple lines: wrap in single paragraph with <br> tags
-      message_content <- paste0("<p>", gsub("\n", "<br>", custom_message), "</p>")
+      # Multiple lines: convert newlines to <br> tags
+      message_content <- gsub("\n", "<br>", custom_message)
     } else {
-      # Single line: wrap in paragraph
-      message_content <- paste0("<p>", custom_message, "</p>")
+      # Single line: use as-is
+      message_content <- custom_message
     }
     
     html_content <- paste0(
@@ -692,9 +692,9 @@ create_dept_email_template <- function(from_name,
     )
   } else {
     # Use the original template when no custom message is provided (no automatic signature)
-    html_content <- paste0(
-      "<html><head><style>body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; color: black; line-height: 1.6; }</style></head><body>",
-      "<p>Good Evening,</p>",
+          html_content <- paste0(
+        "<html><body>",
+        "<p>Good Evening,</p>",
       "<p>My name is ", from_name, ", and I am reaching out to you in your capacity as a Director of Undergraduate Studies or Student Services Manager.</p>",
       "<p>If you have any questions or would like further information, please feel free to contact me at ", reply_to_email, ". We appreciate your support and look forward to working with you.</p>",
       "</body></html>"

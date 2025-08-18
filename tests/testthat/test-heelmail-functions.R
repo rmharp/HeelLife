@@ -28,9 +28,9 @@ test_that("create_dept_email_template creates valid HTML", {
   expect_false(grepl("Dr. Jane Smith", email_html))
   expect_false(grepl("jane.smith@unc.edu", email_html))
   
-  # Check for CSS styling
-  expect_true(grepl("font-family.*Times New Roman", email_html))
-  expect_true(grepl("font-size.*12pt", email_html))
+  # Check for basic HTML structure (no CSS styling in simplified version)
+  expect_true(grepl("<html>", email_html))
+  expect_true(grepl("<body>", email_html))
 })
 
 test_that("create_dept_email_template handles optional parameters", {
@@ -131,11 +131,10 @@ test_that("create_dept_email_template creates accessible HTML", {
     reply_to_email = "test@unc.edu"
   )
   
-  # Check for proper HTML structure
-  expect_true(grepl("<head>", email_html))
-  expect_true(grepl("<style>", email_html))
-  expect_true(grepl("</style>", email_html))
-  expect_true(grepl("<body", email_html))
+  # Check for proper HTML structure (simplified without styling)
+  expect_true(grepl("<html>", email_html))
+  expect_true(grepl("<body>", email_html))
+  expect_true(grepl("</body>", email_html))
   
   # Check for proper paragraph structure (no automatic closing/signature lines)
   expect_true(grepl("<p>Good Evening,</p>", email_html))
