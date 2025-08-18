@@ -30,6 +30,15 @@ devtools::install_github("rmharp/HeelLife")
 
 The main function in this package is `get_unc_contacts()`. It requires your UNC ONYEN and password to log in. It is highly recommended to store your credentials securely using environment variables rather than hardcoding them in your script.
 
+### Quick Start with Example Scripts
+
+The package includes ready-to-use example scripts in `inst/examples/`:
+
+1. **Scrape Contacts**: `inst/examples/run_heellife.R`
+2. **Send Emails**: `inst/examples/send_emails.R`
+
+See `inst/examples/README.md` for detailed usage instructions.
+
 You can create a `.env` file in your project's root directory:
 
 ```

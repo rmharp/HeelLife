@@ -1,12 +1,9 @@
 Package: HeelLife
 Title: Scrape and Manage UNC-Chapel Hill Student Organization Contacts
-Version: 0.1.0
-Authors@R: 
-    person("Riley", "Harper", 
-           email = "riley.harper@unc.edu", 
-           role = c("aut", "cre"),
-           comment = c(ORCID = "0009-0009-9443-366X"))
-Author: Riley Harper [aut, cre]
+Version: 0.1.1
+Authors@R: person("Riley", "Harper", email = "riley.harper@unc.edu", role = c("aut", "cre"),
+                  comment = c(ORCID = "0009-0009-9443-366X"))
+Author: Riley Harper
 Maintainer: Riley Harper <riley.harper@unc.edu>
 Description: A toolset to programmatically access and scrape contact information for student organizations from the UNC-Chapel Hill 'Heel Life' website. It handles the login process, navigates the organization list, and extracts details such as organization name, member names, positions, and emails. This package requires user credentials for the UNC 'Heel Life' portal and an interactive session to handle multi-factor authentication.
 License: MIT + file LICENSE
@@ -26,6 +23,8 @@ Suggests:
     knitr,
     rmarkdown,
     testthat (>= 3.0.0)
+Additional_repositories: 
+    https://cran.r-project.org
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 URL: https://github.com/rmharp/HeelLife

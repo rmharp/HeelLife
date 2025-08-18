@@ -61,6 +61,22 @@
 #' }
 get_unc_contacts <- function(username, password, output_file = "unc_contacts.csv") {
   
+  # Input validation
+  if (is.null(username) || !is.character(username) || nchar(trimws(username)) == 0) {
+    stop("username must be a non-empty character string")
+  }
+  if (is.null(password) || !is.character(password) || nchar(trimws(password)) == 0) {
+    stop("password must be a non-empty character string")
+  }
+  if (is.null(output_file) || !is.character(output_file) || nchar(trimws(output_file)) == 0) {
+    stop("output_file must be a non-empty character string")
+  }
+  
+  # Clean inputs
+  username <- trimws(username)
+  password <- trimws(password)
+  output_file <- trimws(output_file)
+  
   # --- 1. Setup Selenium Server ---
   message("Starting Selenium server with Firefox...")
   rD <- rsDriver(browser = "firefox", chromever = NULL, port = netstat::free_port(), verbose = FALSE)

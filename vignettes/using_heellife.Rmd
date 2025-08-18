@@ -50,6 +50,23 @@ The `get_unc_contacts()` function requires your UNC ONYEN and password. To avoid
 
 With your credentials stored, you can now run the scraper.
 
+### Using the Example Scripts
+
+The package includes ready-to-use scripts for common workflows:
+
+```r
+# Navigate to the examples directory
+# The scripts are located in inst/examples/
+
+# 1. Run the scraper
+system("Rscript inst/examples/run_heellife.R")
+
+# 2. Send emails (test mode first)
+system("Rscript inst/examples/send_emails.R")
+```
+
+See `inst/examples/README.md` for detailed command-line usage instructions.
+
 ```{r, eval=FALSE}
 library(HeelLife)
 library(dotenv)

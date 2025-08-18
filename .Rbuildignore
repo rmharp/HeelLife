@@ -10,3 +10,5 @@
 ^docs/
 ^\.env$
 ^CRAN-SUBMISSION$
+^\.Rproj\.user$
+^inst/examples/\.env$

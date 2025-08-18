@@ -1,0 +1,10 @@
+# Example .env file for HeelLife package
+# Copy this file to .env and fill in your actual credentials
+
+# Your UNC ONYEN username
+ONYEN_USERNAME="your_onyen_here"
+
+# Your UNC password
+ONYEN_PASSWORD="your_password_here"
+
+# Note: Keep this file secure and never commit it to version control
