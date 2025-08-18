@@ -1071,32 +1071,24 @@ send_dept_emails_heelmail <- function(contacts_df,
       subject_elem <- remDr$findElement(using = 'css selector', value = 'input[aria-label="Subject"]')
       subject_elem$sendKeysToElement(list(subject))
       
-      # Enter email body using JavaScript
+      # Enter email body using JavaScript - using the working approach from UNC Departments HeelMail.R
       body_escaped <- gsub("'", "\\\\'", email_body)
       body_escaped <- gsub("\n", "<br>", body_escaped)
       
       script <- sprintf("var editor = document.querySelector('div[contenteditable=\\'true\\'][aria-label=\\'Message body\\']');
       if (editor) {
-          // Clear existing content first
-          editor.innerHTML = '';
-          
-          // Create the message content
-          var messageDiv = document.createElement('div');
-          messageDiv.className = 'elementToProof';
-          messageDiv.style.fontFamily = 'Times New Roman, Times, serif';
-          messageDiv.style.fontSize = '12pt';
-          messageDiv.style.color = 'rgb(0, 0, 0)';
-          messageDiv.innerHTML = '%s';
-          
-          // Insert the message at the beginning
+          var newElement = document.createElement('div');
+          newElement.className = 'elementToProof';
+          newElement.style.fontFamily = 'Times New Roman, Times, serif';
+          newElement.style.fontSize = '12pt';
+          newElement.style.color = 'rgb(0, 0, 0)';
+          newElement.innerHTML = '%s<br>';
+      
           if (editor.firstChild) {
-              editor.insertBefore(messageDiv, editor.firstChild);
+              editor.insertBefore(newElement, editor.firstChild);
           } else {
-              editor.appendChild(messageDiv);
+              editor.appendChild(newElement);
           }
-          
-          // Trigger input event to ensure HeelMail recognizes the change
-          editor.dispatchEvent(new Event('input', { bubbles: true }));
       }", body_escaped)
       
       remDr$executeScript(script, args = list(list()))
