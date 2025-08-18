@@ -1075,8 +1075,22 @@ send_dept_emails_heelmail <- function(contacts_df,
       body_escaped <- gsub("'", "\\\\'", email_body)
       body_escaped <- gsub("\n", "<br>", body_escaped)
       
+      # Wait a bit for the editor to be fully ready
+      Sys.sleep(2)
+      
+      # First, check if editor exists and log it
+      check_script <- "var editor = document.querySelector('div[contenteditable=\"true\"][aria-label=\"Message body\"]');
+      console.log('Editor found:', editor);
+      console.log('Editor content before:', editor ? editor.innerHTML : 'No editor');
+      return editor ? 'Found' : 'Not found';"
+      
+      editor_status <- remDr$executeScript(check_script, args = list(list()))
+      message("Editor status: ", editor_status)
+      
+      # Now insert the content
       script <- sprintf("var editor = document.querySelector('div[contenteditable=\"true\"][aria-label=\"Message body\"]');
       if (editor) {
+          console.log('Inserting content into editor');
           var newElement = document.createElement('div');
           newElement.className = 'elementToProof';
           newElement.style.fontFamily = 'Times New Roman, Times, serif';
@@ -1089,9 +1103,15 @@ send_dept_emails_heelmail <- function(contacts_df,
           } else {
               editor.appendChild(newElement);
           }
+          console.log('Content inserted. Editor content after:', editor.innerHTML);
+          return 'Content inserted successfully';
+      } else {
+          console.log('Editor not found');
+          return 'Editor not found';
       }", body_escaped)
       
-      remDr$executeScript(script, args = list(list()))
+      result <- remDr$executeScript(script, args = list(list()))
+      message("JavaScript execution result: ", result)
       
       # Handle file attachments if specified
       if (!is.null(attachment_paths)) {
