@@ -690,10 +690,22 @@ create_dept_email_template <- function(from_name,
       color: black; 
       line-height: 1.6;
     }
+    .signature {
+      margin-top: 20px;
+      border-top: 1px solid #ccc;
+      padding-top: 20px;
+    }
     </style>
     </head>
     <body>
       ", message_paragraphs, "
+      
+      <div class='signature'>
+        <strong>", from_name, "</strong><br>",
+        if (nchar(signature_title) > 0) paste0(signature_title, "<br>") else "",
+        if (nchar(organization_name) > 0) paste0(organization_name, "<br>") else "",
+        "<strong>Primary Email:</strong> <a href='mailto:", primary_email, "'>", primary_email, "</a>
+      </div>
     </body>
     </html>"
     )
@@ -1103,25 +1115,25 @@ send_dept_emails_heelmail <- function(contacts_df,
       Sys.sleep(2)
       
       # First, check if editor exists and log it
-      cat("🔍 Checking if editor exists...\n")
+      cat("Checking if editor exists...\n")
       check_script <- "var editor = document.querySelector('div[contenteditable=\"true\"][aria-label=\"Message body\"]');
       if (editor) {
-          console.log('✅ Editor found:', editor);
-          console.log('📝 Editor content before:', editor.innerHTML);
+          console.log('Editor found:', editor);
+          console.log('Editor content before:', editor.innerHTML);
           return 'Found - Content length: ' + editor.innerHTML.length;
       } else {
-          console.log('❌ Editor not found');
+          console.log('Editor not found');
           return 'Not found';
       }"
       
       editor_status <- remDr$executeScript(check_script, args = list(list()))
-      cat("📊 Editor status:", ifelse(is.list(editor_status), paste(unlist(editor_status), collapse=" "), editor_status), "\n")
+      cat("Editor status:", ifelse(is.list(editor_status), paste(unlist(editor_status), collapse=" "), editor_status), "\n")
       
       # Now insert the content
-      cat("📝 Attempting to insert message content...\n")
+      cat("Attempting to insert message content...\n")
       script <- sprintf("var editor = document.querySelector('div[contenteditable=\"true\"][aria-label=\"Message body\"]');
       if (editor) {
-          console.log('✅ Editor found, inserting content...');
+          console.log('Editor found, inserting content...');
           var newElement = document.createElement('div');
           newElement.className = 'elementToProof';
           newElement.style.fontFamily = 'Times New Roman, Times, serif';
@@ -1134,30 +1146,30 @@ send_dept_emails_heelmail <- function(contacts_df,
           } else {
               editor.appendChild(newElement);
           }
-          console.log('📝 Content inserted. Editor content after:', editor.innerHTML);
+          console.log('Content inserted. Editor content after:', editor.innerHTML);
           return 'Content inserted successfully - New length: ' + editor.innerHTML.length;
       } else {
-          console.log('❌ Editor not found during insertion');
+          console.log('Editor not found during insertion');
           return 'Editor not found during insertion';
       }", body_escaped)
       
       result <- remDr$executeScript(script, args = list(list()))
-      cat("📊 JavaScript execution result:", ifelse(is.list(result), paste(unlist(result), collapse=" "), result), "\n")
+      cat("JavaScript execution result:", ifelse(is.list(result), paste(unlist(result), collapse=" "), result), "\n")
       
       # Verify the content was actually inserted
-      cat("🔍 Verifying content insertion...\n")
+      cat("Verifying content insertion...\n")
       verify_script <- "var editor = document.querySelector('div[contenteditable=\"true\"][aria-label=\"Message body\"]');
       if (editor) {
           var content = editor.innerHTML;
-          console.log('📝 Final editor content:', content);
+          console.log('Final editor content:', content);
           return content;
       } else {
           return 'Editor not found during verification';
       }"
       
       final_content <- remDr$executeScript(verify_script, args = list(list()))
-      cat("📊 Final editor content length:", nchar(ifelse(is.list(final_content), paste(unlist(final_content), collapse=" "), final_content)), "characters\n")
-      cat("📝 Content preview:", substr(ifelse(is.list(final_content), paste(unlist(final_content), collapse=" "), final_content), 1, 200), "...\n")
+      cat("Final editor content length:", nchar(ifelse(is.list(final_content), paste(unlist(final_content), collapse=" "), final_content)), "characters\n")
+      cat("Content preview:", substr(ifelse(is.list(final_content), paste(unlist(final_content), collapse=" "), final_content), 1, 200), "...\n")
       
       # Handle file attachments if specified
       if (!is.null(attachment_paths)) {
