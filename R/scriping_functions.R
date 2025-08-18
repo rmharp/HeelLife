@@ -70,31 +70,36 @@
 #' @return A list containing the server and client objects
 #' @import RSelenium
 #' @import netstat
-safe_start_selenium <- function(port = netstat::free_port(), verbose = FALSE) {
-  # Set environment variables to disable driver downloads
-  Sys.setenv(WDM_LOG_LEVEL = "0")  # Disable webdriver manager logging
-  Sys.setenv(WDM_PRINT_FIRST_LINE = "false")  # Disable first line printing
-  Sys.setenv(WDM_LOCAL = "1")  # Use local drivers only
-  Sys.setenv(WDM_SSL_VERIFY = "0")  # Disable SSL verification for downloads
-  Sys.setenv(WDM_CACHE_PATH = tempdir())  # Use temporary directory for cache
-  
-  # Explicitly set all driver versions to NULL to prevent downloads
-  rD <- rsDriver(
-    browser = "firefox",
-    chromever = NULL,
-    phantomver = NULL,
-    geckover = NULL,  # Explicitly set Firefox driver version to NULL
-    port = port,
-    verbose = verbose,
-    extraCapabilities = list(
-      "moz:firefoxOptions" = list(
-        args = c("--no-sandbox", "--disable-dev-shm-usage")
-      )
-    )
-  )
-  
-  return(rD)
-}
+# safe_start_selenium <- function(port = NULL, verbose = FALSE) {
+#   # Set environment variables to disable driver downloads
+#   Sys.setenv(WDM_LOG_LEVEL = "0")  # Disable webdriver manager logging
+#   Sys.setenv(WDM_PRINT_FIRST_LINE = "false")  # Disable first line printing
+#   Sys.setenv(WDM_LOCAL = "1")  # Use local drivers only
+#   Sys.setenv(WDM_SSL_VERIFY = "0")  # Disable SSL verification for downloads
+#   Sys.setenv(WDM_CACHE_PATH = tempdir())  # Use temporary directory for cache
+#   
+#   # Get port if not provided
+#   if (is.null(port)) {
+#     port <- netstat::free_port()
+#   }
+#   
+#   # Explicitly set all driver versions to NULL to prevent downloads
+#   rD <- rsDriver(
+#     browser = "firefox",
+#     chromever = NULL,
+#     phantomver = NULL,
+#     geckover = NULL,  # Explicitly set Firefox driver version to NULL
+#     port = port,
+#     verbose = verbose,
+#     extraCapabilities = list(
+#       "moz:firefoxOptions" = list(
+#         args = c("--no-sandbox", "--disable-dev-shm-usage")
+#       )
+#     )
+#   )
+#   
+#   return(rD)
+# }
 
 #' Alternative Selenium startup that completely bypasses driver downloads
 #' 
@@ -106,7 +111,12 @@ safe_start_selenium <- function(port = netstat::free_port(), verbose = FALSE) {
 #' @return A list containing the server and client objects
 #' @import RSelenium
 #' @import netstat
-alternative_start_selenium <- function(port = netstat::free_port(), verbose = FALSE) {
+alternative_start_selenium <- function(port = NULL, verbose = FALSE) {
+  # Get port if not provided
+  if (is.null(port)) {
+    port <- netstat::free_port()
+  }
+  
   # Try to use existing Firefox installation without downloading drivers
   tryCatch({
     # Method 1: Use existing Firefox without driver specification
@@ -157,12 +167,7 @@ get_unc_contacts <- function(username, password, output_file = "unc_contacts.csv
   
   # --- 1. Setup Selenium Server ---
   message("Starting Selenium server with Firefox...")
-  tryCatch({
-    rD <- safe_start_selenium(port = netstat::free_port(), verbose = FALSE)
-  }, error = function(e) {
-    message("Primary method failed, trying alternative approach...")
-    rD <- alternative_start_selenium(port = netstat::free_port(), verbose = FALSE)
-  })
+  rD <- rsDriver(browser = "firefox", chromever = NULL, phantomver = NULL, port = netstat::free_port(), verbose = FALSE)
   remDr <- rD$client
   
   # Ensure the browser closes on exit
@@ -815,12 +820,7 @@ send_dept_emails_heelmail <- function(contacts_df,
   
   # Start Selenium server
   message("Starting Selenium server with Firefox...")
-  tryCatch({
-    rD <- safe_start_selenium(port = netstat::free_port(), verbose = FALSE)
-  }, error = function(e) {
-    message("Primary method failed, trying alternative approach...")
-    rD <- alternative_start_selenium(port = netstat::free_port(), verbose = FALSE)
-  })
+  rD <- rsDriver(browser = "firefox", chromever = NULL, phantomver = NULL, port = netstat::free_port(), verbose = FALSE)
   remDr <- rD$client
   
   # Ensure the browser closes on exit
