@@ -678,47 +678,21 @@ create_dept_email_template <- function(from_name,
     # If custom message is provided, create minimal HTML structure around user's message
     # Split the custom message into lines and wrap each in <p> tags
     message_lines <- strsplit(custom_message, "\n")[[1]]
-    message_paragraphs <- paste0("<p>", message_lines, "</p>", collapse = "\n      ")
+    message_paragraphs <- paste0("<p>", message_lines, "</p>", collapse = "")
     
     html_content <- paste0(
-      "<html>
-    <head>
-    <style>
-    body { 
-      font-family: 'Times New Roman', Times, serif; 
-      font-size: 12pt; 
-      color: black; 
-      line-height: 1.6;
-    }
-    </style>
-    </head>
-    <body>
-      ", message_paragraphs, "
-    </body>
-    </html>"
+      "<html><head><style>body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; color: black; line-height: 1.6; }</style></head><body>",
+      message_paragraphs,
+      "</body></html>"
     )
   } else {
     # Use the original template when no custom message is provided (no automatic signature)
     html_content <- paste0(
-      "<html>
-    <head>
-    <style>
-    body { 
-      font-family: 'Times New Roman', Times, serif; 
-      font-size: 12pt; 
-      color: black; 
-      line-height: 1.6;
-    }
-    </style>
-    </head>
-    <body>
-      <p>Good Evening,</p>
-      
-      <p>My name is ", from_name, ", and I am reaching out to you in your capacity as a Director of Undergraduate Studies or Student Services Manager.</p>
-      
-      <p>If you have any questions or would like further information, please feel free to contact me at ", reply_to_email, ". We appreciate your support and look forward to working with you.</p>
-    </body>
-    </html>"
+      "<html><head><style>body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; color: black; line-height: 1.6; }</style></head><body>",
+      "<p>Good Evening,</p>",
+      "<p>My name is ", from_name, ", and I am reaching out to you in your capacity as a Director of Undergraduate Studies or Student Services Manager.</p>",
+      "<p>If you have any questions or would like further information, please feel free to contact me at ", reply_to_email, ". We appreciate your support and look forward to working with you.</p>",
+      "</body></html>"
     )
   }
   
