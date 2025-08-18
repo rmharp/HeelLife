@@ -1092,7 +1092,7 @@ send_dept_emails_heelmail <- function(contacts_df,
           newElement.style.fontFamily = 'Times New Roman, Times, serif';
           newElement.style.fontSize = '12pt';
           newElement.style.color = 'rgb(0, 0, 0)';
-          newElement.innerHTML = '%s<br>';
+          newElement.innerHTML = '%s';
       
           if (editor.firstChild) {
               editor.insertBefore(newElement, editor.firstChild);
