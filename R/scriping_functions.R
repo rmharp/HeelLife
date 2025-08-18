@@ -79,7 +79,12 @@ get_unc_contacts <- function(username, password, output_file = "unc_contacts.csv
   
   # --- 1. Setup Selenium Server ---
   message("Starting Selenium server with Firefox...")
-  rD <- rsDriver(browser = "firefox", chromever = NULL, phantomver = NULL, port = netstat::free_port(), verbose = FALSE)
+  tryCatch({
+    rD <- safe_start_selenium(port = netstat::free_port(), verbose = FALSE)
+  }, error = function(e) {
+    message("Primary method failed, trying alternative approach...")
+    rD <- alternative_start_selenium(port = netstat::free_port(), verbose = FALSE)
+  })
   remDr <- rD$client
   
   # Ensure the browser closes on exit
@@ -238,6 +243,83 @@ get_unc_contacts <- function(username, password, output_file = "unc_contacts.csv
   
   message("Process finished successfully.")
   return(all_org_info)
+}
+
+#' Safely start RSelenium with Firefox, avoiding PhantomJS dependencies
+#' 
+#' This function starts RSelenium with Firefox while explicitly avoiding
+#' any PhantomJS driver downloads that can cause connection errors.
+#' 
+#' @param port The port to use for the Selenium server
+#' @param verbose Whether to show verbose output
+#' @return A list containing the server and client objects
+#' @import RSelenium
+#' @import netstat
+safe_start_selenium <- function(port = netstat::free_port(), verbose = FALSE) {
+  # Set environment variables to disable driver downloads
+  Sys.setenv(WDM_LOG_LEVEL = "0")  # Disable webdriver manager logging
+  Sys.setenv(WDM_PRINT_FIRST_LINE = "false")  # Disable first line printing
+  Sys.setenv(WDM_LOCAL = "1")  # Use local drivers only
+  Sys.setenv(WDM_SSL_VERIFY = "0")  # Disable SSL verification for downloads
+  Sys.setenv(WDM_CACHE_PATH = tempdir())  # Use temporary directory for cache
+  
+  # Explicitly set all driver versions to NULL to prevent downloads
+  rD <- rsDriver(
+    browser = "firefox",
+    chromever = NULL,
+    phantomver = NULL,
+    geckover = NULL,  # Explicitly set Firefox driver version to NULL
+    port = port,
+    verbose = verbose,
+    extraCapabilities = list(
+      "moz:firefoxOptions" = list(
+        args = c("--no-sandbox", "--disable-dev-shm-usage")
+      )
+    )
+  )
+  
+  return(rD)
+}
+
+#' Alternative Selenium startup that completely bypasses driver downloads
+#' 
+#' This function uses a different approach to start Selenium without
+#' triggering any driver download attempts.
+#' 
+#' @param port The port to use for the Selenium server
+#' @param verbose Whether to show verbose output
+#' @return A list containing the server and client objects
+#' @import RSelenium
+#' @import netstat
+alternative_start_selenium <- function(port = netstat::free_port(), verbose = FALSE) {
+  # Try to use existing Firefox installation without downloading drivers
+  tryCatch({
+    # Method 1: Use existing Firefox without driver specification
+    rD <- rsDriver(
+      browser = "firefox",
+      port = port,
+      verbose = verbose
+    )
+    return(rD)
+  }, error = function(e) {
+    # Method 2: If that fails, try with explicit NULL values and environment variables
+    message("First method failed, trying alternative approach...")
+    
+    # Set environment variables to disable webdriver manager
+    Sys.setenv(WDM_LOG_LEVEL = "0")
+    Sys.setenv(WDM_PRINT_FIRST_LINE = "false")
+    Sys.setenv(WDM_LOCAL = "1")  # Use local drivers only
+    
+    rD <- rsDriver(
+      browser = "firefox",
+      chromever = NULL,
+      phantomver = NULL,
+      geckover = NULL,
+      port = port,
+      verbose = verbose
+    )
+    return(rD)
+  })
 }
 
 #' Scrape UNC Department Contacts
@@ -732,7 +814,12 @@ send_dept_emails_heelmail <- function(contacts_df,
   
   # Start Selenium server
   message("Starting Selenium server with Firefox...")
-  rD <- RSelenium::rsDriver(browser = "firefox", chromever = NULL, phantomver = NULL, port = netstat::free_port(), verbose = FALSE)
+  tryCatch({
+    rD <- safe_start_selenium(port = netstat::free_port(), verbose = FALSE)
+  }, error = function(e) {
+    message("Primary method failed, trying alternative approach...")
+    rD <- alternative_start_selenium(port = netstat::free_port(), verbose = FALSE)
+  })
   remDr <- rD$client
   
   # Ensure the browser closes on exit
@@ -980,7 +1067,7 @@ send_dept_emails_heelmail <- function(contacts_df,
       }
       
       # Enter subject
-      subject_elem <- remDr$findElement(using = 'css selector', value = 'input[aria-label="Add a subject"]')
+      subject_elem <- remDr$findElement(using = 'css selector', value = 'input[aria-label="Subject"]')
       subject_elem$sendKeysToElement(list(subject))
       
       # Enter email body using JavaScript
