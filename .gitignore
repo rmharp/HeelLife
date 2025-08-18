@@ -1,31 +1,36 @@
-# R temporary files
+# History files
 .Rhistory
+.Rapp.history
+
+# Session Data files
 .RData
-.Rproj.user/
-.Renviron
+.RDataTmp
 
-# R package build files
-*.Rcheck/
-..Rcheck/
+# User-specific files
+.Ruserdata
+
+# Example code in package build process
+*-Ex.R
+
+# Output files from R CMD build
 *.tar.gz
-* .tgz
+*.tgz
 
-# Vignette build files
-vignettes/*.html
-vignettes/*.pdf
-
-# pkgdown site
-docs/
-pkgdown/
-_pkgdown.yml
-_pkgdown.yaml
+# Output files from R CMD check
+*.Rcheck/
 
 # RStudio files
-.rstudio-persistent/
+.Rproj.user/
 
-# OS-specific files
+# produced by knitr
+*-figure*.png
+*-figure*.pdf
+
+# OAuth2 token files
+.httr-oauth
+
+# Mac files
 .DS_Store
-Thumbs.db
 
-# Credentials
-.env
+# UNC-Dept-Email-Push directory (contains nested git repo)
+UNC-Dept-Email-Push/
