@@ -1077,18 +1077,26 @@ send_dept_emails_heelmail <- function(contacts_df,
       
       script <- sprintf("var editor = document.querySelector('div[contenteditable=\\'true\\'][aria-label=\\'Message body\\']');
       if (editor) {
-          var newElement = document.createElement('div');
-          newElement.className = 'elementToProof';
-          newElement.style.fontFamily = 'Times New Roman, Times, serif';
-          newElement.style.fontSize = '12pt';
-          newElement.style.color = 'rgb(0, 0, 0)';
-          newElement.innerHTML = '%s<br>';
-      
+          // Clear existing content first
+          editor.innerHTML = '';
+          
+          // Create the message content
+          var messageDiv = document.createElement('div');
+          messageDiv.className = 'elementToProof';
+          messageDiv.style.fontFamily = 'Times New Roman, Times, serif';
+          messageDiv.style.fontSize = '12pt';
+          messageDiv.style.color = 'rgb(0, 0, 0)';
+          messageDiv.innerHTML = '%s';
+          
+          // Insert the message at the beginning
           if (editor.firstChild) {
-              editor.insertBefore(newElement, editor.firstChild);
+              editor.insertBefore(messageDiv, editor.firstChild);
           } else {
-              editor.appendChild(newElement);
+              editor.appendChild(messageDiv);
           }
+          
+          // Trigger input event to ensure HeelMail recognizes the change
+          editor.dispatchEvent(new Event('input', { bubbles: true }));
       }", body_escaped)
       
       remDr$executeScript(script, args = list(list()))
