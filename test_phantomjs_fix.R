@@ -12,7 +12,7 @@ cat("✅ Packages loaded successfully!\n\n")
 
 # Load the functions directly from source
 cat("Loading functions from source...\n")
-source('R/scriping_functions.R')
+source('R/scripting_functions.R')
 source('R/example_scripts.R')
 cat("✅ Functions loaded successfully!\n\n")
 
