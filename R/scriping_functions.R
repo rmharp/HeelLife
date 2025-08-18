@@ -1075,7 +1075,7 @@ send_dept_emails_heelmail <- function(contacts_df,
       body_escaped <- gsub("'", "\\\\'", email_body)
       body_escaped <- gsub("\n", "<br>", body_escaped)
       
-      script <- sprintf("var editor = document.querySelector('div[contenteditable=\\'true\\'][aria-label=\\'Message body, press Alt+F10 to exit\\']');
+      script <- sprintf("var editor = document.querySelector('div[contenteditable=\\'true\\'][aria-label=\\'Message body\\']');
       if (editor) {
           var newElement = document.createElement('div');
           newElement.className = 'elementToProof';
