@@ -732,7 +732,7 @@ send_dept_emails_heelmail <- function(contacts_df,
   
   # Start Selenium server
   message("Starting Selenium server with Firefox...")
-  rD <- RSelenium::rsDriver(browser = "firefox", chromever = NULL, port = netstat::free_port(), verbose = FALSE)
+  rD <- RSelenium::rsDriver(browser = "firefox", chromever = NULL, phantomver = NULL, port = netstat::free_port(), verbose = FALSE)
   remDr <- rD$client
   
   # Ensure the browser closes on exit
@@ -753,16 +753,53 @@ send_dept_emails_heelmail <- function(contacts_df,
     # Login process
     message("Logging into HeelMail...")
     
-    # Enter username
-    login <- remDr$findElement(using = 'css selector', value = 'input[type="email"]')
+    # Enter username (ensure it's in email format)
+    if (!grepl("@", username)) {
+      username <- paste0(username, "@ad.unc.edu")
+    }
+    message("Using username: ", username)
+    
+    # Try to find the email input field with multiple selectors
+    message("Looking for email input field...")
+    login <- NULL
+    email_selectors <- c(
+      'input[type="email"]',
+      'input[name="email"]',
+      'input[id*="email"]',
+      'input[placeholder*="email"]',
+      'input[placeholder*="Email"]',
+      'input[placeholder*="username"]',
+      'input[placeholder*="Username"]'
+    )
+    
+    for (selector in email_selectors) {
+      tryCatch({
+        login <- remDr$findElement(using = 'css selector', value = selector)
+        message("Found email input with selector: ", selector)
+        break
+      }, error = function(e) {
+        # Continue to next selector
+      })
+    }
+    
+    if (is.null(login)) {
+      message("Could not find email input field. The HeelMail interface may have changed.")
+      message("Current page source preview:")
+      page_source <- remDr$getPageSource()[[1]]
+      message(substr(page_source, 1, 500))
+      stop("Email input field not found")
+    }
+    
     login$sendKeysToElement(list(username))
     
     # Click next
     next_button <- remDr$findElement(using = 'css selector', value = 'input[type="submit"]')
     next_button$clickElement()
-    Sys.sleep(1.5)
+    Sys.sleep(2)
     
-    # Enter password
+    # Wait for password field to appear and enter password
+    message("Waiting for password field...")
+    Sys.sleep(1)
     pass <- remDr$findElement(using = 'css selector', value = 'input[type="password"]')
     pass$sendKeysToElement(list(password))
     
@@ -771,38 +808,118 @@ send_dept_emails_heelmail <- function(contacts_df,
     signin_button$clickElement()
     Sys.sleep(1.5)
     
-    # Handle MFA - click text option
-    textbutton <- remDr$findElement(using = 'xpath', value = "//div[contains(text(), 'Text')]")
-    textbutton$clickElement()
-    Sys.sleep(1.5)
+    # Handle MFA - try to find and click text option
+    message("Looking for MFA text option...")
+    textbutton <- NULL
     
-    # Prompt for MFA code
+    # Try different selectors for the MFA text option
+    text_selectors <- c(
+      "//div[contains(text(), 'Text')]",
+      "//div[contains(text(), 'text')]",
+      "//div[contains(text(), 'SMS')]",
+      "//div[contains(text(), 'sms')]",
+      "//button[contains(text(), 'Text')]",
+      "//button[contains(text(), 'SMS')]",
+      "//span[contains(text(), 'Text')]",
+      "//span[contains(text(), 'SMS')]"
+    )
+    
+    for (selector in text_selectors) {
+      tryCatch({
+        textbutton <- remDr$findElement(using = 'xpath', value = selector)
+        message("Found MFA text option with selector: ", selector)
+        break
+      }, error = function(e) {
+        # Continue to next selector
+      })
+    }
+    
+    if (is.null(textbutton)) {
+      message("Could not find MFA text option. The interface may have changed.")
+      message("Please manually select the text/SMS option for MFA when prompted.")
+      Sys.sleep(5)  # Give user time to manually select
+    } else {
+      textbutton$clickElement()
+      Sys.sleep(2)
+    }
+    
+    # Prompt for MFA code and wait for user input
+    message("Please check your phone for the MFA text message...")
+    message("Waiting for MFA code input...")
+    
+    # Wait for user to provide MFA code
+    message("Please enter your MFA code when prompted...")
     code <- readline(prompt = "Enter the MFA code sent to your phone: ")
+    
+    # Validate the code
+    if (is.null(code) || code == "" || length(code) == 0) {
+      message("No MFA code provided. Please run the function again and enter the code when prompted.")
+      stop("MFA code required for HeelMail authentication")
+    }
+    
+    # Enter the MFA code
+    message("Entering MFA code...")
     codeloc <- remDr$findElement(using = 'css selector', value = 'input[type="tel"]')
     codeloc$sendKeysToElement(list(code))
     
     # Verify code
     verify_button <- remDr$findElement(using = 'css selector', value = 'input[type="submit"]')
     verify_button$clickElement()
-    Sys.sleep(1.5)
+    Sys.sleep(3)
     
-    # Handle "Stay signed in" checkbox
-    check_button <- remDr$findElement(using = 'css selector', value = 'input[type="checkbox"]')
-    check_button$clickElement()
-    
-    # Click yes
-    yes_button <- remDr$findElement(using = 'css selector', value = 'input[type="submit"]')
-    yes_button$clickElement()
-    Sys.sleep(1.5)
+    # Handle "Stay signed in" checkbox if it appears
+    tryCatch({
+      message("Handling 'Stay signed in' option...")
+      check_button <- remDr$findElement(using = 'css selector', value = 'input[type="checkbox"]')
+      check_button$clickElement()
+      
+      # Click yes
+      yes_button <- remDr$findElement(using = 'css selector', value = 'input[type="submit"]')
+      yes_button$clickElement()
+      Sys.sleep(2)
+    }, error = function(e) {
+      message("'Stay signed in' option not found, continuing...")
+    })
     
     message("Successfully logged into HeelMail. Starting to send emails...")
+    
+    # Wait for the page to fully load after login
+    message("Waiting for HeelMail page to fully load...")
+    Sys.sleep(5)
     
     # Send emails
     last_index <- start_index - 1
     
     for (i in start_index:min(start_index + num_emails_to_send - 1, nrow(table_grouped))) {
-      # Click new mail button
-      new_mail_button <- remDr$findElement(using = 'css selector', value = 'button[aria-label="New mail"]')
+      # Click new mail button - try multiple selectors
+      message("Looking for New Mail button...")
+      new_mail_button <- NULL
+      
+      # Try different selectors for the New Mail button
+      selectors <- c(
+        'button[aria-label="New mail"]',
+        'button[aria-label="New message"]',
+        'button[title="New mail"]',
+        'button[title="New message"]',
+        'button:contains("New")',
+        'button:contains("Compose")',
+        'button:contains("Write")'
+      )
+      
+      for (selector in selectors) {
+        tryCatch({
+          new_mail_button <- remDr$findElement(using = 'css selector', value = selector)
+          message("Found New Mail button with selector: ", selector)
+          break
+        }, error = function(e) {
+          # Continue to next selector
+        })
+      }
+      
+      if (is.null(new_mail_button)) {
+        stop("Could not find New Mail button. The HeelMail interface may have changed.")
+      }
+      
       new_mail_button$clickElement()
       Sys.sleep(1.5)
       

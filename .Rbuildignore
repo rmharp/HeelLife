@@ -17,3 +17,9 @@
 ^HeelLife_0\.1\.2\.tar\.gz$
 ^\.Rhistory$
 ^UNC-Dept-Email-Push/
+^test_heellife_functionality\.R$
+^send_dept_emails_heelmail\.R$
+^run_dept_contacts\.R$
+^run_heellife\.R$
+^send_dept_emails\.R$
+^send_emails\.R$
