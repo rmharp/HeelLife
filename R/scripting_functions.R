@@ -686,7 +686,7 @@ create_dept_email_template <- function(from_name,
     }
     
     html_content <- paste0(
-      "<html><head><style>body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; color: black; line-height: 1.6; }</style></head><body>",
+      "<html><body>",
       message_content,
       "</body></html>"
     )
