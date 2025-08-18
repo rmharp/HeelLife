@@ -1,6 +1,6 @@
 Package: HeelLife
 Title: Scrape and Manage UNC-Chapel Hill Student Organization Contacts
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: person("Riley", "Harper", email = "riley.harper@unc.edu", role = c("aut", "cre"),
                   comment = c(ORCID = "0009-0009-9443-366X"))
 Author: Riley Harper
@@ -22,7 +22,8 @@ Suggests:
     dotenv,
     knitr,
     rmarkdown,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    tibble
 Additional_repositories: 
     https://cran.r-project.org
 VignetteBuilder: knitr

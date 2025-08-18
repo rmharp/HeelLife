@@ -1,5 +1,5 @@
 # Resubmission
-This is a resubmission of HeelLife 0.1.0.
+This is a resubmission of HeelLife 0.1.2.
 
 ## Test environments
 - local macOS install, R 4.3.1

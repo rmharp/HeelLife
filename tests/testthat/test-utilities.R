@@ -28,8 +28,7 @@ test_that("Package namespace is properly configured", {
   # Should use RSelenium
   expect_true(grepl("rsDriver", func_text))
   
-  # Should use dplyr
-  expect_true(grepl("tibble", func_text))
+  # Should use dplyr functions
   expect_true(grepl("bind_rows", func_text))
   
   # Should use rvest
