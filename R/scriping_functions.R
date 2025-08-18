@@ -1079,18 +1079,25 @@ send_dept_emails_heelmail <- function(contacts_df,
       Sys.sleep(2)
       
       # First, check if editor exists and log it
+      cat("🔍 Checking if editor exists...\n")
       check_script <- "var editor = document.querySelector('div[contenteditable=\"true\"][aria-label=\"Message body\"]');
-      console.log('Editor found:', editor);
-      console.log('Editor content before:', editor ? editor.innerHTML : 'No editor');
-      return editor ? 'Found' : 'Not found';"
+      if (editor) {
+          console.log('✅ Editor found:', editor);
+          console.log('📝 Editor content before:', editor.innerHTML);
+          return 'Found - Content length: ' + editor.innerHTML.length;
+      } else {
+          console.log('❌ Editor not found');
+          return 'Not found';
+      }"
       
       editor_status <- remDr$executeScript(check_script, args = list(list()))
-      message("Editor status: ", editor_status)
+      cat("📊 Editor status:", editor_status, "\n")
       
       # Now insert the content
+      cat("📝 Attempting to insert message content...\n")
       script <- sprintf("var editor = document.querySelector('div[contenteditable=\"true\"][aria-label=\"Message body\"]');
       if (editor) {
-          console.log('Inserting content into editor');
+          console.log('✅ Editor found, inserting content...');
           var newElement = document.createElement('div');
           newElement.className = 'elementToProof';
           newElement.style.fontFamily = 'Times New Roman, Times, serif';
@@ -1103,15 +1110,30 @@ send_dept_emails_heelmail <- function(contacts_df,
           } else {
               editor.appendChild(newElement);
           }
-          console.log('Content inserted. Editor content after:', editor.innerHTML);
-          return 'Content inserted successfully';
+          console.log('📝 Content inserted. Editor content after:', editor.innerHTML);
+          return 'Content inserted successfully - New length: ' + editor.innerHTML.length;
       } else {
-          console.log('Editor not found');
-          return 'Editor not found';
+          console.log('❌ Editor not found during insertion');
+          return 'Editor not found during insertion';
       }", body_escaped)
       
       result <- remDr$executeScript(script, args = list(list()))
-      message("JavaScript execution result: ", result)
+      cat("📊 JavaScript execution result:", result, "\n")
+      
+      # Verify the content was actually inserted
+      cat("🔍 Verifying content insertion...\n")
+      verify_script <- "var editor = document.querySelector('div[contenteditable=\"true\"][aria-label=\"Message body\"]');
+      if (editor) {
+          var content = editor.innerHTML;
+          console.log('📝 Final editor content:', content);
+          return content;
+      } else {
+          return 'Editor not found during verification';
+      }"
+      
+      final_content <- remDr$executeScript(verify_script, args = list(list()))
+      cat("📊 Final editor content length:", nchar(final_content), "characters\n")
+      cat("📝 Content preview:", substr(final_content, 1, 200), "...\n")
       
       # Handle file attachments if specified
       if (!is.null(attachment_paths)) {
