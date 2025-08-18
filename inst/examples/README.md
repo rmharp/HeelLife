@@ -84,6 +84,30 @@ chmod +x inst/examples/send_dept_emails.R
 Rscript inst/examples/send_dept_emails.R
 ```
 
+### `send_dept_emails_heelmail.R` - Department Email Sender (HeelMail)
+A script to send emails to UNC department contacts using UNC HeelMail web interface.
+
+**Features:**
+- Reads department contacts from CSV file
+- Interactive email composition
+- Professional HTML email templates
+- Test email functionality
+- UNC HeelMail integration (no API setup required)
+- MFA authentication handling
+- High importance flag support
+- CC email support
+- Resume capability
+
+**Usage:**
+```bash
+# Make executable and run
+chmod +x inst/examples/send_dept_emails_heelmail.R
+./inst/examples/send_dept_emails_heelmail.R
+
+# Or run with Rscript
+Rscript inst/examples/send_dept_emails_heelmail.R
+```
+
 ## 🔐 Setting Up Credentials
 
 ### Option 1: Environment Variables (Recommended for Student Organizations)
@@ -97,8 +121,8 @@ ONYEN_USERNAME="your_onyen"
 ONYEN_PASSWORD="your_password"
 ```
 
-### Option 2: Gmail API Setup (Required for Department Emails)
-For sending emails to departments, you'll need to set up Gmail API:
+### Option 2: Gmail API Setup (Required for Gmail Department Emails)
+For sending emails to departments via Gmail API, you'll need to set up Gmail API:
 
 1. Visit [Google Cloud Console](https://console.cloud.google.com/)
 2. Enable Gmail API for your project
@@ -110,6 +134,14 @@ library(gmailr)
 gm_auth_configure(path = "path/to/your/credentials.json")
 gm_auth(email = TRUE, cache = ".secret")
 ```
+
+### Option 3: HeelMail Setup (Required for HeelMail Department Emails)
+For sending emails to departments via UNC HeelMail, you'll need:
+
+1. **UNC Credentials**: Your ONYEN username and password
+2. **Firefox Browser**: Must be installed on your system
+3. **MFA Access**: Ability to receive MFA codes via text
+4. **No API Setup**: HeelMail uses web automation, no external API required
 
 ### Option 3: Interactive Input
 The scripts will prompt for credentials if environment variables are not set.
@@ -138,15 +170,23 @@ The scripts will prompt for credentials if environment variables are not set.
    ```
 
 2. **Send Emails to Departments:**
+   
+   **Option A: Via Gmail API**
    ```bash
    Rscript inst/examples/send_dept_emails.R
+   ```
+   
+   **Option B: Via UNC HeelMail**
+   ```bash
+   Rscript inst/examples/send_dept_emails_heelmail.R
    ```
 
 ## ⚠️ Important Notes
 
-- **Firefox Required**: The student organization scraper needs Firefox browser
-- **MFA Required**: Student organization scraping requires MFA codes during login
-- **Gmail API Required**: Department email sending requires Gmail API setup
+- **Firefox Required**: Both student organization scraper and HeelMail email sender need Firefox browser
+- **MFA Required**: Student organization scraping and HeelMail login require MFA codes during login
+- **Gmail API Required**: Gmail department email sending requires Gmail API setup
+- **HeelMail Alternative**: Department emails can be sent via UNC HeelMail (no API setup required)
 - **Rate Limiting**: Be respectful of UNC's servers and Gmail's sending limits
 - **Email Configuration**: Customize email sending in the respective scripts
 
@@ -167,7 +207,10 @@ All scripts are designed to be easily customizable:
 ## 🆕 New Features in v0.1.2
 
 - **Department Contact Scraping**: Scrape DUS and SSM contacts from UNC curricula website
-- **Department Email Sending**: Send professional emails to department contacts
+- **Department Email Sending**: Send professional emails to department contacts via Gmail API or UNC HeelMail
 - **HTML Email Templates**: Professional email templates with customizable signatures
 - **Gmail API Integration**: Secure email sending through Gmail API
+- **UNC HeelMail Integration**: Email sending through UNC's official email system (no API setup required)
+- **Multi-Provider Support**: Choose between Gmail API and HeelMail for department emails
 - **Rate Limiting Protection**: Built-in protection against email sending limits
+- **High Importance & CC Support**: Advanced email features for HeelMail users

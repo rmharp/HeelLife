@@ -28,6 +28,7 @@ heellife_examples <- function() {
     email_sender = file.path(examples_dir, "send_emails.R"),
     dept_contacts = file.path(examples_dir, "run_dept_contacts.R"),
     dept_emails = file.path(examples_dir, "send_dept_emails.R"),
+    dept_emails_heelmail = file.path(examples_dir, "send_dept_emails_heelmail.R"),
     readme = file.path(examples_dir, "README.md"),
     env_example = file.path(examples_dir, "env_example.txt"),
     examples_dir = examples_dir
@@ -54,7 +55,8 @@ show_heellife_examples <- function() {
   cat("  * Student Organization Scraper:", scripts$scraper, "\n")
   cat("  * Student Organization Email Sender:", scripts$email_sender, "\n")
   cat("  * Department Contacts Scraper:", scripts$dept_contacts, "\n")
-  cat("  * Department Email Sender:", scripts$dept_emails, "\n")
+  cat("  * Department Email Sender (Gmail):", scripts$dept_emails, "\n")
+  cat("  * Department Email Sender (HeelMail):", scripts$dept_emails_heelmail, "\n")
   cat("  * Documentation:", scripts$readme, "\n")
   cat("  * Environment Template:", scripts$env_example, "\n\n")
   
@@ -68,8 +70,10 @@ show_heellife_examples <- function() {
   cat("  # Scrape department contacts (DUS/SSM)\n")
   cat("  Rscript", scripts$dept_contacts, "\n\n")
   
-  cat("  # Send emails to departments (test mode)\n")
+  cat("  # Send emails to departments via Gmail (test mode)\n")
   cat("  Rscript", scripts$dept_emails, "\n\n")
+  cat("  # Send emails to departments via HeelMail (test mode)\n")
+  cat("  Rscript", scripts$dept_emails_heelmail, "\n\n")
   
   cat("For detailed instructions, see:\n")
   cat("  ", scripts$readme, "\n")
@@ -100,6 +104,7 @@ copy_heellife_examples <- function(overwrite = FALSE) {
     "send_emails.R" = scripts$email_sender,
     "run_dept_contacts.R" = scripts$dept_contacts,
     "send_dept_emails.R" = scripts$dept_emails,
+    "send_dept_emails_heelmail.R" = scripts$dept_emails_heelmail,
     "env_example.txt" = scripts$env_example,
     "examples_README.md" = scripts$readme
   )

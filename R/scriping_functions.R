@@ -626,3 +626,361 @@ create_dept_email_template <- function(from_name,
   
   return(html_content)
 }
+
+#' Send Emails to UNC Department Contacts via HeelMail
+#'
+#' This function sends emails to Directors of Undergraduate Studies (DUS) and 
+#' Student Services Managers (SSM) at UNC departments using the UNC HeelMail web interface.
+#'
+#' @details
+#' The function uses RSelenium to automate the UNC HeelMail web interface. It requires
+#' your UNC credentials and handles MFA authentication. This provides an alternative to
+#' Gmail API for users who prefer to use UNC's official email system.
+#'
+#' @param contacts_df Data frame of department contacts (from get_unc_dept_contacts)
+#' @param username Your UNC ONYEN username
+#' @param password Your UNC password
+#' @param subject Email subject line
+#' @param email_body HTML content of the email body
+#' @param start_index Index to start sending from (useful for resuming)
+#' @param test_email Optional email address for testing (sends only to this address)
+#' @param cc_emails Optional vector of email addresses to CC
+#' @param high_importance Logical. Should emails be marked as high importance?
+#' @param attachment_paths Optional vector of file paths to attach
+#' @return Invisible NULL. Function prints progress and results.
+#' @import RSelenium
+#' @import dplyr
+#' @import netstat
+#' @export
+#' @examples
+#' \dontrun{
+#' # First, scrape contacts
+#' contacts <- get_unc_dept_contacts()
+#' 
+#' # Send emails via HeelMail
+#' send_dept_emails_heelmail(
+#'   contacts_df = contacts,
+#'   username = "your_onyen",
+#'   password = "your_password",
+#'   subject = "Important Announcement",
+#'   email_body = "<p>Hello,</p><p>This is a test email.</p>"
+#' )
+#' 
+#' # Test with a single email first
+#' send_dept_emails_heelmail(
+#'   contacts_df = contacts,
+#'   username = "your_onyen",
+#'   password = "your_password",
+#'   subject = "Test Email",
+#'   email_body = "<p>Test email body</p>",
+#'   test_email = "test@example.com"
+#' )
+#' }
+send_dept_emails_heelmail <- function(contacts_df, 
+                                     username, 
+                                     password, 
+                                     subject, 
+                                     email_body, 
+                                     start_index = 1,
+                                     test_email = NULL,
+                                     cc_emails = NULL,
+                                     high_importance = FALSE,
+                                     attachment_paths = NULL) {
+  
+  # Input validation
+  if (is.null(contacts_df) || nrow(contacts_df) == 0) {
+    stop("contacts_df must be a non-empty data frame")
+  }
+  if (is.null(username) || !is.character(username) || nchar(trimws(username)) == 0) {
+    stop("username must be a non-empty character string")
+  }
+  if (is.null(password) || !is.character(password) || nchar(trimws(password)) == 0) {
+    stop("password must be a non-empty character string")
+  }
+  if (is.null(subject) || !is.character(subject) || nchar(trimws(subject)) == 0) {
+    stop("subject must be a non-empty character string")
+  }
+  if (is.null(email_body) || !is.character(email_body) || nchar(trimws(email_body)) == 0) {
+    stop("email_body must be a non-empty character string")
+  }
+  
+  # Clean inputs
+  username <- trimws(username)
+  password <- trimws(password)
+  subject <- trimws(subject)
+  email_body <- trimws(email_body)
+  
+  # Check if RSelenium is available
+  if (!requireNamespace("RSelenium", quietly = TRUE)) {
+    stop("RSelenium package is required. Install with: install.packages('RSelenium')")
+  }
+  
+  # Group contacts by department (combine multiple emails per department)
+  table_grouped <- contacts_df %>%
+    dplyr::group_by(.data$Department) %>% 
+    dplyr::summarise(Email = paste(.data$Email, collapse = ", "))
+  
+  message("Prepared to send emails to ", nrow(table_grouped), " departments via HeelMail")
+  
+  # Determine number of emails to send
+  if (!is.null(test_email)) {
+    num_emails_to_send <- 1
+    message("Test mode: sending to ", test_email)
+  } else {
+    num_emails_to_send <- nrow(table_grouped)
+  }
+  
+  # Start Selenium server
+  message("Starting Selenium server with Firefox...")
+  rD <- RSelenium::rsDriver(browser = "firefox", chromever = NULL, port = netstat::free_port(), verbose = FALSE)
+  remDr <- rD$client
+  
+  # Ensure the browser closes on exit
+  on.exit({
+    message("Closing browser and stopping server...")
+    remDr$close()
+    rD$server$stop()
+    rm(rD)
+    gc()
+  })
+  
+  tryCatch({
+    # Navigate to HeelMail
+    message("Navigating to HeelMail...")
+    remDr$navigate("http://heelmail.unc.edu/")
+    Sys.sleep(1.5)
+    
+    # Login process
+    message("Logging into HeelMail...")
+    
+    # Enter username
+    login <- remDr$findElement(using = 'css selector', value = 'input[type="email"]')
+    login$sendKeysToElement(list(username))
+    
+    # Click next
+    next_button <- remDr$findElement(using = 'css selector', value = 'input[type="submit"]')
+    next_button$clickElement()
+    Sys.sleep(1.5)
+    
+    # Enter password
+    pass <- remDr$findElement(using = 'css selector', value = 'input[type="password"]')
+    pass$sendKeysToElement(list(password))
+    
+    # Click sign in
+    signin_button <- remDr$findElement(using = 'css selector', value = 'input[type="submit"]')
+    signin_button$clickElement()
+    Sys.sleep(1.5)
+    
+    # Handle MFA - click text option
+    textbutton <- remDr$findElement(using = 'xpath', value = "//div[contains(text(), 'Text')]")
+    textbutton$clickElement()
+    Sys.sleep(1.5)
+    
+    # Prompt for MFA code
+    code <- readline(prompt = "Enter the MFA code sent to your phone: ")
+    codeloc <- remDr$findElement(using = 'css selector', value = 'input[type="tel"]')
+    codeloc$sendKeysToElement(list(code))
+    
+    # Verify code
+    verify_button <- remDr$findElement(using = 'css selector', value = 'input[type="submit"]')
+    verify_button$clickElement()
+    Sys.sleep(1.5)
+    
+    # Handle "Stay signed in" checkbox
+    check_button <- remDr$findElement(using = 'css selector', value = 'input[type="checkbox"]')
+    check_button$clickElement()
+    
+    # Click yes
+    yes_button <- remDr$findElement(using = 'css selector', value = 'input[type="submit"]')
+    yes_button$clickElement()
+    Sys.sleep(1.5)
+    
+    message("Successfully logged into HeelMail. Starting to send emails...")
+    
+    # Send emails
+    last_index <- start_index - 1
+    
+    for (i in start_index:min(start_index + num_emails_to_send - 1, nrow(table_grouped))) {
+      # Click new mail button
+      new_mail_button <- remDr$findElement(using = 'css selector', value = 'button[aria-label="New mail"]')
+      new_mail_button$clickElement()
+      Sys.sleep(1.5)
+      
+      # Handle high importance if requested
+      if (high_importance) {
+        message("Setting high importance for email ", i)
+        tryCatch({
+          message_button <- remDr$findElement(using = 'xpath', value = "//button[.//span[text()='Message']]")
+          message_button$highlightElement()
+          message_button$clickElement()
+          Sys.sleep(0.5)
+          
+          # Find and click the second "More options" button
+          more_options_buttons <- remDr$findElements(using = 'css selector', value = 'button[aria-label="More options"]')
+          if (length(more_options_buttons) >= 2) {
+            more_options_button <- more_options_buttons[[2]]
+            more_options_button$highlightElement()
+            more_options_button$clickElement()
+            Sys.sleep(1.5)
+            
+            # Click "High importance" button
+            high_importance_button <- remDr$findElement(using = 'css selector', value = 'button[aria-label="High importance"]')
+            high_importance_button$highlightElement()
+            high_importance_button$clickElement()
+          }
+        }, error = function(e) {
+          message("Warning: Could not set high importance: ", e$message)
+        })
+      }
+      
+      # Determine recipient emails
+      if (!is.null(test_email)) {
+        email_addresses <- test_email
+        department <- "TEST"
+      } else {
+        email_addresses <- table_grouped$Email[i]
+        department <- table_grouped$Department[i]
+      }
+      
+      # Split multiple emails and enter them
+      email_addresses <- strsplit(email_addresses, ", ")[[1]]
+      email_input_div <- remDr$findElement(using = 'css selector', value = 'div[aria-label="To"]')
+      
+      for (email in email_addresses) {
+        email_input_div$sendKeysToElement(list(email))
+        Sys.sleep(2.75)
+        email_input_div$sendKeysToElement(list(key = "enter"))
+      }
+      
+      # Handle CC emails if specified
+      if (!is.null(cc_emails) && length(cc_emails) > 0) {
+        cc_input_div <- remDr$findElement(using = 'css selector', value = 'div[aria-label="Cc"]')
+        for (email in cc_emails) {
+          cc_input_div$sendKeysToElement(list(email))
+          Sys.sleep(2.5)
+          cc_input_div$sendKeysToElement(list(key = "enter"))
+        }
+      }
+      
+      # Enter subject
+      subject_elem <- remDr$findElement(using = 'css selector', value = 'input[aria-label="Add a subject"]')
+      subject_elem$sendKeysToElement(list(subject))
+      
+      # Enter email body using JavaScript
+      body_escaped <- gsub("'", "\\\\'", email_body)
+      body_escaped <- gsub("\n", "<br>", body_escaped)
+      
+      script <- sprintf("var editor = document.querySelector('div[contenteditable=\\'true\\'][aria-label=\\'Message body, press Alt+F10 to exit\\']');
+      if (editor) {
+          var newElement = document.createElement('div');
+          newElement.className = 'elementToProof';
+          newElement.style.fontFamily = 'Times New Roman, Times, serif';
+          newElement.style.fontSize = '12pt';
+          newElement.style.color = 'rgb(0, 0, 0)';
+          newElement.innerHTML = '%s<br>';
+      
+          if (editor.firstChild) {
+              editor.insertBefore(newElement, editor.firstChild);
+          } else {
+              editor.appendChild(newElement);
+          }
+      }", body_escaped)
+      
+      remDr$executeScript(script, args = list(list()))
+      
+      # Handle file attachments if specified
+      if (!is.null(attachment_paths)) {
+        message("Please drag and drop the following files into the email:")
+        for (path in attachment_paths) {
+          if (file.exists(path)) {
+            message("  - ", path)
+          }
+        }
+        readline(prompt = "Press Enter when you have finished attaching files...")
+      }
+      
+      Sys.sleep(1.5)
+      
+      # Send the email
+      send_button <- remDr$findElement(using = 'css selector', value = 'button[aria-label="Send"]')
+      send_button$clickElement()
+      Sys.sleep(1.5)
+      
+      # Handle attachment reminder if it appears
+      tryCatch({
+        ar_send_button <- remDr$findElement(using = 'css selector', value = 'button#ok-1')
+        ar_send_button$highlightElement()
+        ar_send_button$clickElement()
+        Sys.sleep(1.5)
+      }, error = function(e) {
+        # Attachment reminder not found, continue
+      })
+      
+      last_index <- i
+      message("Email sent to ", department, " (", i, "/", min(start_index + num_emails_to_send - 1, nrow(table_grouped)), ")")
+      
+      Sys.sleep(1.5)
+    }
+    
+    message("Email sending completed. Last emailed group index: ", last_index)
+    
+  }, error = function(e) {
+    stop("Error during HeelMail email sending: ", e$message)
+  })
+  
+  return(invisible(NULL))
+}
+
+#' Send Emails to UNC Department Contacts (Multi-Provider)
+#'
+#' This function sends emails to Directors of Undergraduate Studies (DUS) and 
+#' Student Services Managers (SSM) at UNC departments using either Gmail API or HeelMail.
+#'
+#' @details
+#' This function provides a unified interface for sending emails to department contacts.
+#' Users can choose between Gmail API (requires Gmail API setup) and HeelMail (requires
+#' UNC credentials and handles MFA).
+#'
+#' @param contacts_df Data frame of department contacts (from get_unc_dept_contacts)
+#' @param method Email sending method: "gmail" or "heelmail"
+#' @param ... Additional arguments passed to the specific email sending function
+#' @return Invisible NULL. Function prints progress and results.
+#' @export
+#' @examples
+#' \dontrun{
+#' # First, scrape contacts
+#' contacts <- get_unc_dept_contacts()
+#' 
+#' # Send via Gmail API
+#' send_dept_emails_unified(
+#'   contacts_df = contacts,
+#'   method = "gmail",
+#'   from_email = "your_email@gmail.com",
+#'   from_name = "Your Name",
+#'   reply_to_email = "your_email@gmail.com",
+#'   subject = "Important Announcement",
+#'   email_body = "<p>Hello,</p><p>This is a test email.</p>"
+#' )
+#' 
+#' # Send via HeelMail
+#' send_dept_emails_unified(
+#'   contacts_df = contacts,
+#'   method = "heelmail",
+#'   username = "your_onyen",
+#'   password = "your_password",
+#'   subject = "Important Announcement",
+#'   email_body = "<p>Hello,</p><p>This is a test email.</p>"
+#' )
+#' }
+send_dept_emails_unified <- function(contacts_df, method = "gmail", ...) {
+  
+  if (!method %in% c("gmail", "heelmail")) {
+    stop("method must be either 'gmail' or 'heelmail'")
+  }
+  
+  if (method == "gmail") {
+    send_dept_emails(contacts_df = contacts_df, ...)
+  } else if (method == "heelmail") {
+    send_dept_emails_heelmail(contacts_df = contacts_df, ...)
+  }
+}

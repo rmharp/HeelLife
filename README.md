@@ -38,7 +38,10 @@ The main function for student organizations is `get_unc_contacts()`. It requires
 
 ### 2. Department Contact Scraping and Email Sending
 
-For department contacts, use `get_unc_dept_contacts()` to scrape DUS and SSM contacts, and `send_dept_emails()` to send emails to them. This functionality requires Gmail API setup.
+For department contacts, use `get_unc_dept_contacts()` to scrape DUS and SSM contacts, and choose between:
+- **Gmail API**: Use `send_dept_emails()` (requires Gmail API setup)
+- **UNC HeelMail**: Use `send_dept_emails_heelmail()` (uses UNC credentials, no API setup)
+- **Unified Interface**: Use `send_dept_emails_unified()` to choose your preferred method
 
 ### Quick Start with Example Scripts
 
@@ -50,7 +53,8 @@ The package includes ready-to-use example scripts in `inst/examples/`:
 
 #### Department Contacts:
 3. **Scrape Department Contacts**: `inst/examples/run_dept_contacts.R`
-4. **Send Department Emails**: `inst/examples/send_dept_emails.R`
+4. **Send Department Emails (Gmail)**: `inst/examples/send_dept_emails.R`
+5. **Send Department Emails (HeelMail)**: `inst/examples/send_dept_emails_heelmail.R`
 
 See `inst/examples/README.md` for detailed usage instructions.
 
@@ -100,6 +104,7 @@ print(head(dept_contacts))
 
 ### Sending Emails to Departments
 
+#### Option 1: Via Gmail API
 ```r
 library(HeelLife)
 
@@ -123,6 +128,44 @@ send_dept_emails(
   from_email = "your_email@gmail.com",
   from_name = "Dr. Jane Smith",
   reply_to_email = "jane.smith@unc.edu",
+  subject = "Invitation to Event",
+  email_body = email_body
+)
+```
+
+#### Option 2: Via UNC HeelMail
+```r
+library(HeelLife)
+
+# Create an email template
+email_body <- create_dept_email_template(
+  from_name = "Dr. Jane Smith",
+  reply_to_email = "jane.smith@unc.edu",
+  custom_message = "I'm reaching out to invite your department to participate in our upcoming event.",
+  signature_title = "Director of Student Programs",
+  organization_name = "Office of Student Life"
+)
+
+# Send emails to all departments via HeelMail
+send_dept_emails_heelmail(
+  contacts_df = dept_contacts,
+  username = "janesmith",  # Your UNC ONYEN
+  password = "your_password",
+  subject = "Invitation to Event",
+  email_body = email_body,
+  high_importance = TRUE,  # Optional: mark as high importance
+  cc_emails = c("admin@unc.edu")  # Optional: CC additional emails
+)
+```
+
+#### Option 3: Unified Interface
+```r
+# Choose your preferred method
+send_dept_emails_unified(
+  contacts_df = dept_contacts,
+  method = "heelmail",  # or "gmail"
+  username = "janesmith",
+  password = "your_password",
   subject = "Invitation to Event",
   email_body = email_body
 )

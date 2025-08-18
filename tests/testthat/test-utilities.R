@@ -11,7 +11,7 @@ test_that("Package exports are correct", {
   
   # Check that we have the expected number of exported functions
   exported_functions <- ls("package:HeelLife")
-  expect_equal(length(exported_functions), 7)
+  expect_equal(length(exported_functions), 9)
 })
 
 test_that("Package namespace is properly configured", {

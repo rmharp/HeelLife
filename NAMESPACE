@@ -3,6 +3,8 @@
 export(get_unc_contacts)
 export(get_unc_dept_contacts)
 export(send_dept_emails)
+export(send_dept_emails_heelmail)
+export(send_dept_emails_unified)
 export(create_dept_email_template)
 export(heellife_examples)
 export(show_heellife_examples)
