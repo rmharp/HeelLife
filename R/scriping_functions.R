@@ -1091,7 +1091,7 @@ send_dept_emails_heelmail <- function(contacts_df,
       }"
       
       editor_status <- remDr$executeScript(check_script, args = list(list()))
-      cat("📊 Editor status:", editor_status, "\n")
+      cat("📊 Editor status:", ifelse(is.list(editor_status), paste(unlist(editor_status), collapse=" "), editor_status), "\n")
       
       # Now insert the content
       cat("📝 Attempting to insert message content...\n")
@@ -1118,7 +1118,7 @@ send_dept_emails_heelmail <- function(contacts_df,
       }", body_escaped)
       
       result <- remDr$executeScript(script, args = list(list()))
-      cat("📊 JavaScript execution result:", result, "\n")
+      cat("📊 JavaScript execution result:", ifelse(is.list(result), paste(unlist(result), collapse=" "), result), "\n")
       
       # Verify the content was actually inserted
       cat("🔍 Verifying content insertion...\n")
@@ -1132,8 +1132,8 @@ send_dept_emails_heelmail <- function(contacts_df,
       }"
       
       final_content <- remDr$executeScript(verify_script, args = list(list()))
-      cat("📊 Final editor content length:", nchar(final_content), "characters\n")
-      cat("📝 Content preview:", substr(final_content, 1, 200), "...\n")
+      cat("📊 Final editor content length:", nchar(ifelse(is.list(final_content), paste(unlist(final_content), collapse=" "), final_content)), "characters\n")
+      cat("📝 Content preview:", substr(ifelse(is.list(final_content), paste(unlist(final_content), collapse=" "), final_content), 1, 200), "...\n")
       
       # Handle file attachments if specified
       if (!is.null(attachment_paths)) {
