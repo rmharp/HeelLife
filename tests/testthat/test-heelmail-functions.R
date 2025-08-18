@@ -21,11 +21,12 @@ test_that("create_dept_email_template creates valid HTML", {
   expect_true(grepl("</body>", email_html))
   
   # Check for content
-  expect_true(grepl("Dr. Jane Smith", email_html))
-  expect_true(grepl("jane.smith@unc.edu", email_html))
   expect_true(grepl("Test message", email_html))
-  expect_true(grepl("Director", email_html))
-  expect_true(grepl("Test Org", email_html))
+  # Signature fields are not auto-inserted; user's message should include any signature
+  expect_false(grepl("class='signature'", email_html))
+  # No auto-inserted name/email in custom message mode
+  expect_false(grepl("Dr. Jane Smith", email_html))
+  expect_false(grepl("jane.smith@unc.edu", email_html))
   
   # Check for CSS styling
   expect_true(grepl("font-family.*Times New Roman", email_html))
@@ -50,7 +51,8 @@ test_that("create_dept_email_template handles optional parameters", {
     primary_email = "primary@unc.edu"
   )
   
-  expect_true(grepl("primary@unc.edu", email_html))
+  # Primary email is not auto-inserted when no signature is appended
+  expect_false(grepl("primary@unc.edu", email_html))
 })
 
 test_that("create_dept_email_template handles empty custom message", {
@@ -93,28 +95,20 @@ test_that("create_dept_email_template handles special characters", {
   )
   
   expect_true(is.character(email_html))
-  expect_true(grepl("Dr. O'Connor-Smith", email_html))
+  # Name is not auto-inserted in custom message mode
+  expect_false(grepl("Dr. O'Connor-Smith", email_html))
   expect_true(grepl("Message with 'quotes' and \"double quotes\"", email_html))
-  expect_true(grepl("Director & Manager", email_html))
-  expect_true(grepl("Test & Associates, Inc.", email_html))
+  # Signature fields are no longer auto-appended
+  expect_false(grepl("Director & Manager", email_html))
+  expect_false(grepl("Test & Associates, Inc.", email_html))
 })
 
-test_that("create_dept_email_template creates proper signature block", {
+test_that("create_dept_email_template does not auto-append signature", {
   email_html <- create_dept_email_template(
     from_name = "Test User",
-    reply_to_email = "test@unc.edu",
-    signature_title = "Senior Director",
-    organization_name = "Office of Research"
+    reply_to_email = "test@unc.edu"
   )
-  
-  # Check for signature styling
-  expect_true(grepl("class='signature'", email_html))
-  expect_true(grepl("border-top.*1px solid", email_html))
-  
-  # Check signature content
-  expect_true(grepl("<strong>Test User</strong>", email_html))
-  expect_true(grepl("Senior Director", email_html))
-  expect_true(grepl("Office of Research", email_html))
+  expect_false(grepl("class='signature'", email_html))
 })
 
 test_that("create_dept_email_template handles long messages", {
@@ -143,7 +137,7 @@ test_that("create_dept_email_template creates accessible HTML", {
   expect_true(grepl("</style>", email_html))
   expect_true(grepl("<body", email_html))
   
-  # Check for proper paragraph structure
+  # Check for proper paragraph structure (no automatic closing/signature lines)
   expect_true(grepl("<p>Good Evening,</p>", email_html))
-  expect_true(grepl("<p>Best regards,</p>", email_html))
+  expect_false(grepl("<p>Best regards,</p>", email_html))
 })

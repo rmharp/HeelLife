@@ -14,8 +14,11 @@
 ^inst/examples/\.env$
 ^\.Rcheck$
 ^HeelLife\.Rcheck$
-^HeelLife_0\.1\.2\.tar\.gz$
+^\.\.Rcheck$
+^\.\.Rcheck/
+^\.RData$
 ^\.Rhistory$
+^HeelLife_0\.1\.2\.tar\.gz$
 ^UNC-Dept-Email-Push/
 ^test_heellife_functionality\.R$
 ^send_dept_emails_heelmail\.R$

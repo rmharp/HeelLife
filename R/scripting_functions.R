@@ -690,27 +690,15 @@ create_dept_email_template <- function(from_name,
       color: black; 
       line-height: 1.6;
     }
-    .signature {
-      margin-top: 20px;
-      border-top: 1px solid #ccc;
-      padding-top: 20px;
-    }
     </style>
     </head>
     <body>
       ", message_paragraphs, "
-      
-      <div class='signature'>
-        <strong>", from_name, "</strong><br>",
-        if (nchar(signature_title) > 0) paste0(signature_title, "<br>") else "",
-        if (nchar(organization_name) > 0) paste0(organization_name, "<br>") else "",
-        "<strong>Primary Email:</strong> <a href='mailto:", primary_email, "'>", primary_email, "</a>
-      </div>
     </body>
     </html>"
     )
   } else {
-    # Use the original template when no custom message is provided
+    # Use the original template when no custom message is provided (no automatic signature)
     html_content <- paste0(
       "<html>
     <head>
@@ -721,11 +709,6 @@ create_dept_email_template <- function(from_name,
       color: black; 
       line-height: 1.6;
     }
-    .signature {
-      margin-top: 20px;
-      border-top: 1px solid #ccc;
-      padding-top: 20px;
-    }
     </style>
     </head>
     <body>
@@ -734,15 +717,6 @@ create_dept_email_template <- function(from_name,
       <p>My name is ", from_name, ", and I am reaching out to you in your capacity as a Director of Undergraduate Studies or Student Services Manager.</p>
       
       <p>If you have any questions or would like further information, please feel free to contact me at ", reply_to_email, ". We appreciate your support and look forward to working with you.</p>
-      
-      <p>Best regards,</p>
-      
-      <div class='signature'>
-        <strong>", from_name, "</strong><br>",
-        if (nchar(signature_title) > 0) paste0(signature_title, "<br>") else "",
-        if (nchar(organization_name) > 0) paste0(organization_name, "<br>") else "",
-        "<strong>Primary Email:</strong> <a href='mailto:", primary_email, "'>", primary_email, "</a>
-      </div>
     </body>
     </html>"
     )
