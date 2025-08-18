@@ -239,3 +239,390 @@ get_unc_contacts <- function(username, password, output_file = "unc_contacts.csv
   message("Process finished successfully.")
   return(all_org_info)
 }
+
+#' Scrape UNC Department Contacts
+#'
+#' This function scrapes contact information for Directors of Undergraduate Studies (DUS)
+#' and Student Services Managers (SSM) from the UNC curricula website.
+#'
+#' @details
+#' The function scrapes the UNC departmental contacts page to extract information about
+#' Directors of Undergraduate Studies and Student Services Managers. It returns a data frame
+#' with department names, roles, and email addresses.
+#'
+#' @param output_file Optional path to save the output CSV file. If NULL, no file is saved.
+#' @return A data frame containing the scraped contact information with columns:
+#'   `Department`, `Role`, and `Email`.
+#' @import rvest
+#' @import dplyr
+#' @importFrom readr write_csv
+#' @export
+#' @examples
+#' \dontrun{
+#' # Scrape department contacts
+#' dept_contacts <- get_unc_dept_contacts()
+#' print(head(dept_contacts))
+#' 
+#' # Save to file
+#' dept_contacts <- get_unc_dept_contacts(output_file = "dept_contacts.csv")
+#' }
+get_unc_dept_contacts <- function(output_file = NULL) {
+  
+  message("Scraping UNC departmental contacts...")
+  
+  # URL for UNC departmental contacts
+  url <- "https://curricula.unc.edu/departmental-contacts/?wpv_aux_current_post_id=191&wpv_aux_parent_post_id=191&wpv_view_count=645"
+  
+  tryCatch({
+    # Read the webpage
+    page <- xml2::read_html(url)
+    
+    # Extract table rows
+    rows <- page %>% rvest::html_nodes("table tr")
+    
+    # Process each row
+    extracted_data <- lapply(rows, function(row) {
+      # Initialize placeholders
+      department <- NA
+      role <- NA
+      
+      # Extract text from cells
+      cells <- row %>% rvest::html_nodes("td") %>% rvest::html_text(trim = TRUE)
+      if (length(cells) >= 1) {
+        department <- cells[1]
+      }
+      if (length(cells) >= 2) {
+        role <- cells[2]
+      }
+      
+      # Extract email addresses
+      email_links <- row %>% rvest::html_nodes("a[href^='mailto:']") %>% rvest::html_attr("href")
+      emails <- if (length(email_links) > 0) {
+        unlist(lapply(email_links, function(link) {
+          # Remove 'mailto:' and split by ';'
+          split_emails <- strsplit(gsub("mailto:", "", link), ";\\s*")
+          unlist(split_emails)
+        }))
+      } else {
+        character(0)
+      }
+      
+      list(Department = department, Role = role, Emails = emails)
+    })
+    
+    # Build final data frame
+    final_table <- data.frame(
+      Department = character(), 
+      Role = character(), 
+      Email = character(), 
+      stringsAsFactors = FALSE
+    )
+    
+    # Populate final_table, ensuring multiple emails result in duplicated rows
+    for (row in extracted_data) {
+      if (length(row$Emails) > 0) {
+        for (email in row$Emails) {
+          new_row <- data.frame(
+            Department = row$Department, 
+            Role = row$Role, 
+            Email = email, 
+            stringsAsFactors = FALSE
+          )
+          final_table <- rbind(final_table, new_row)
+        }
+      } else {
+        # If no emails, add the row with NA for Email
+        new_row <- data.frame(
+          Department = row$Department, 
+          Role = row$Role, 
+          Email = NA, 
+          stringsAsFactors = FALSE
+        )
+        final_table <- rbind(final_table, new_row)
+      }
+    }
+    
+    # Filter for DUS and SSM roles
+    filtered_table <- final_table %>%
+      dplyr::filter(
+        stringr::str_detect(.data$Role, "DUS") | 
+        stringr::str_detect(.data$Role, "SSM")
+      )
+    
+    # Remove rows with missing emails
+    filtered_table <- filtered_table %>%
+      dplyr::filter(!is.na(.data$Email))
+    
+    message("Successfully scraped ", nrow(filtered_table), " department contacts")
+    
+    # Save to file if requested
+    if (!is.null(output_file)) {
+      readr::write_csv(filtered_table, output_file)
+      message("Contacts saved to: ", output_file)
+    }
+    
+    return(filtered_table)
+    
+  }, error = function(e) {
+    stop("Error scraping department contacts: ", e$message)
+  })
+}
+
+#' Send Emails to UNC Department Contacts
+#'
+#' This function sends emails to Directors of Undergraduate Studies (DUS) and 
+#' Student Services Managers (SSM) at UNC departments.
+#'
+#' @details
+#' The function requires Gmail API setup and authentication. It can send emails to
+#' all department contacts or start from a specific index. It includes rate limiting
+#' checks and supports HTML email content.
+#'
+#' @param contacts_df Data frame of department contacts (from get_unc_dept_contacts)
+#' @param from_email Email address to send from
+#' @param from_name Your name for the email signature
+#' @param reply_to_email Email address for recipients to reply to
+#' @param subject Email subject line
+#' @param email_body HTML content of the email body
+#' @param start_index Index to start sending from (useful for resuming)
+#' @param test_email Optional email address for testing (sends only to this address)
+#' @param attachment_paths Optional vector of file paths to attach
+#' @return Invisible NULL. Function prints progress and results.
+#' @import dplyr
+#' @importFrom gmailr gm_auth_configure gm_auth gm_mime gm_to gm_from gm_subject gm_html_body gm_attach_file gm_send_message
+#' @export
+#' @examples
+#' \dontrun{
+#' # First, scrape contacts
+#' contacts <- get_unc_dept_contacts()
+#' 
+#' # Send emails to all contacts
+#' send_dept_emails(
+#'   contacts_df = contacts,
+#'   from_email = "your_email@gmail.com",
+#'   from_name = "Your Name",
+#'   reply_to_email = "your_email@gmail.com",
+#'   subject = "Important Announcement",
+#'   email_body = "<p>Hello,</p><p>This is a test email.</p>"
+#' )
+#' 
+#' # Test with a single email first
+#' send_dept_emails(
+#'   contacts_df = contacts,
+#'   from_email = "your_email@gmail.com",
+#'   from_name = "Your Name",
+#'   reply_to_email = "your_email@gmail.com",
+#'   subject = "Test Email",
+#'   email_body = "<p>Test email body</p>",
+#'   test_email = "test@example.com"
+#' )
+#' }
+send_dept_emails <- function(contacts_df, 
+                            from_email, 
+                            from_name, 
+                            reply_to_email, 
+                            subject, 
+                            email_body, 
+                            start_index = 1,
+                            test_email = NULL,
+                            attachment_paths = NULL) {
+  
+  # Input validation
+  if (is.null(contacts_df) || nrow(contacts_df) == 0) {
+    stop("contacts_df must be a non-empty data frame")
+  }
+  if (is.null(from_email) || !is.character(from_email) || nchar(trimws(from_email)) == 0) {
+    stop("from_email must be a non-empty character string")
+  }
+  if (is.null(from_name) || !is.character(from_name) || nchar(trimws(from_name)) == 0) {
+    stop("from_name must be a non-empty character string")
+  }
+  if (is.null(reply_to_email) || !is.character(reply_to_email) || nchar(trimws(reply_to_email)) == 0) {
+    stop("reply_to_email must be a non-empty character string")
+  }
+  if (is.null(subject) || !is.character(subject) || nchar(trimws(subject)) == 0) {
+    stop("subject must be a non-empty character string")
+  }
+  if (is.null(email_body) || !is.character(email_body) || nchar(trimws(email_body)) == 0) {
+    stop("email_body must be a non-empty character string")
+  }
+  
+  # Clean inputs
+  from_email <- trimws(from_email)
+  from_name <- trimws(from_name)
+  reply_to_email <- trimws(reply_to_email)
+  subject <- trimws(subject)
+  email_body <- trimws(email_body)
+  
+  # Check if gmailr is available
+  if (!requireNamespace("gmailr", quietly = TRUE)) {
+    stop("gmailr package is required. Install with: install.packages('gmailr')")
+  }
+  
+  # Group contacts by department (combine multiple emails per department)
+  table_grouped <- contacts_df %>%
+    dplyr::group_by(.data$Department) %>% 
+    dplyr::summarise(Email = paste(.data$Email, collapse = ", "))
+  
+  message("Prepared to send emails to ", nrow(table_grouped), " departments")
+  
+  # Function to check for sending limit reached
+  check_for_sending_limit_reached <- function() {
+    tryCatch({
+      my_messages <- gmailr::gm_threads(num_results = 1)
+      for (msg_id in gmailr::gm_id(my_messages)) {
+        message <- gmailr::gm_message(msg_id)
+        if (any(grepl("You have reached a limit for sending mail. Your message was not sent.", 
+                      gmailr::gm_body(message), fixed = TRUE))) {
+          return(TRUE)
+        }
+      }
+      return(FALSE)
+    }, error = function(e) {
+      return(FALSE)
+    })
+  }
+  
+  # If test email is specified, send only to that address
+  if (!is.null(test_email)) {
+    message("Sending test email to: ", test_email)
+    
+    email <- gmailr::gm_mime() %>%
+      gmailr::gm_to(test_email) %>%
+      gmailr::gm_from(from_email) %>%
+      gmailr::gm_subject(paste0("[TEST] ", subject)) %>%
+      gmailr::gm_html_body(email_body)
+    
+    # Add attachments if specified
+    if (!is.null(attachment_paths)) {
+      for (path in attachment_paths) {
+        if (file.exists(path)) {
+          email <- email %>% gmailr::gm_attach_file(path)
+        }
+      }
+    }
+    
+    gmailr::gm_send_message(email)
+    message("Test email sent successfully")
+    return(invisible(NULL))
+  }
+  
+  # Send emails to all departments
+  message("Starting to send emails to departments...")
+  last_index <- start_index - 1
+  
+  for (i in start_index:nrow(table_grouped)) {
+    # Check for sending limit
+    if (check_for_sending_limit_reached()) {
+      message("Limit for sending mail has been reached. Halting email sending.")
+      break
+    }
+    
+    to <- table_grouped$Email[i]
+    department <- table_grouped$Department[i]
+    
+    message("Sending email to ", department, " (", i, "/", nrow(table_grouped), ")")
+    
+    email <- gmailr::gm_mime() %>%
+      gmailr::gm_to(to) %>%
+      gmailr::gm_from(from_email) %>%
+      gmailr::gm_subject(subject) %>%
+      gmailr::gm_html_body(email_body)
+    
+    # Add attachments if specified
+    if (!is.null(attachment_paths)) {
+      for (path in attachment_paths) {
+        if (file.exists(path)) {
+          email <- email %>% gmailr::gm_attach_file(path)
+        }
+      }
+    }
+    
+    gmailr::gm_send_message(email)
+    last_index <- i
+    
+    # Small delay to avoid rate limiting
+    Sys.sleep(1)
+  }
+  
+  message("Email sending completed. Last emailed group index: ", last_index)
+  return(invisible(NULL))
+}
+
+#' Create HTML Email Template for Department Contacts
+#'
+#' Creates a professional HTML email template for contacting UNC department
+#' Directors of Undergraduate Studies and Student Services Managers.
+#'
+#' @param from_name Your name
+#' @param reply_to_email Email address for recipients to reply to
+#' @param custom_message Custom message content (will be inserted after greeting)
+#' @param signature_title Your title/position
+#' @param organization_name Your organization name
+#' @param primary_email Your primary email address
+#' @return HTML string for the email body
+#' @export
+#' @examples
+#' # Create a basic email template
+#' email_html <- create_dept_email_template(
+#'   from_name = "Dr. Jane Smith",
+#'   reply_to_email = "jane.smith@unc.edu",
+#'   custom_message = "I'm reaching out to invite your department to participate in our upcoming event.",
+#'   signature_title = "Director of Student Programs",
+#'   organization_name = "Office of Student Life"
+#' )
+#' 
+#' print(email_html)
+create_dept_email_template <- function(from_name,
+                                     reply_to_email,
+                                     custom_message = "",
+                                     signature_title = "",
+                                     organization_name = "",
+                                     primary_email = NULL) {
+  
+  # Use reply_to_email as primary if not specified
+  if (is.null(primary_email)) {
+    primary_email <- reply_to_email
+  }
+  
+  # Build the HTML email
+  html_content <- paste0(
+    "<html>
+    <head>
+    <style>
+    body { 
+      font-family: 'Times New Roman', Times, serif; 
+      font-size: 12pt; 
+      color: black; 
+      line-height: 1.6;
+    }
+    .signature {
+      margin-top: 20px;
+      border-top: 1px solid #ccc;
+      padding-top: 20px;
+    }
+    </style>
+    </head>
+    <body>
+      <p>Good Evening,</p>
+      
+      <p>My name is ", from_name, ", and I am reaching out to you in your capacity as a Director of Undergraduate Studies or Student Services Manager.</p>
+      
+      ", if (nchar(custom_message) > 0) paste0("<p>", custom_message, "</p>") else "",
+      
+      "<p>If you have any questions or would like further information, please feel free to contact me at ", reply_to_email, ". We appreciate your support and look forward to working with you.</p>
+      
+      <p>Best regards,</p>
+      
+      <div class='signature'>
+        <strong>", from_name, "</strong><br>",
+        if (nchar(signature_title) > 0) paste0(signature_title, "<br>") else "",
+        if (nchar(organization_name) > 0) paste0(organization_name, "<br>") else "",
+        "<strong>Primary Email:</strong> <a href='mailto:", primary_email, "'>", primary_email, "</a>
+      </div>
+    </body>
+    </html>"
+  )
+  
+  return(html_content)
+}

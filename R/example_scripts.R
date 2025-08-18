@@ -16,6 +16,9 @@
 #'
 #' # Run the email sender example
 #' system(paste("Rscript", scripts$email_sender))
+#'
+#' # Run the department contacts example
+#' system(paste("Rscript", scripts$dept_contacts))
 heellife_examples <- function() {
   package_dir <- system.file(package = "HeelLife")
   examples_dir <- file.path(package_dir, "examples")
@@ -23,6 +26,8 @@ heellife_examples <- function() {
   list(
     scraper = file.path(examples_dir, "run_heellife.R"),
     email_sender = file.path(examples_dir, "send_emails.R"),
+    dept_contacts = file.path(examples_dir, "run_dept_contacts.R"),
+    dept_emails = file.path(examples_dir, "send_dept_emails.R"),
     readme = file.path(examples_dir, "README.md"),
     env_example = file.path(examples_dir, "env_example.txt"),
     examples_dir = examples_dir
@@ -46,20 +51,25 @@ show_heellife_examples <- function() {
   cat("Examples Directory:", scripts$examples_dir, "\n\n")
   
   cat("Available Scripts:\n")
-  cat("  * Scraper:", scripts$scraper, "\n")
-  cat("  * Email Sender:", scripts$email_sender, "\n")
+  cat("  * Student Organization Scraper:", scripts$scraper, "\n")
+  cat("  * Student Organization Email Sender:", scripts$email_sender, "\n")
+  cat("  * Department Contacts Scraper:", scripts$dept_contacts, "\n")
+  cat("  * Department Email Sender:", scripts$dept_emails, "\n")
   cat("  * Documentation:", scripts$readme, "\n")
   cat("  * Environment Template:", scripts$env_example, "\n\n")
   
   cat("Quick Start Commands:\n")
-  cat("  # Scrape contacts\n")
+  cat("  # Scrape student organization contacts\n")
   cat("  Rscript", scripts$scraper, "\n\n")
   
-  cat("  # Send emails (test mode)\n")
+  cat("  # Send emails to student organizations (test mode)\n")
   cat("  Rscript", scripts$email_sender, "\n\n")
   
-  cat("  # Send emails (live mode)\n")
-  cat("  Rscript", scripts$email_sender, "contacts.csv false\n\n")
+  cat("  # Scrape department contacts (DUS/SSM)\n")
+  cat("  Rscript", scripts$dept_contacts, "\n\n")
+  
+  cat("  # Send emails to departments (test mode)\n")
+  cat("  Rscript", scripts$dept_emails, "\n\n")
   
   cat("For detailed instructions, see:\n")
   cat("  ", scripts$readme, "\n")
@@ -88,6 +98,8 @@ copy_heellife_examples <- function(overwrite = FALSE) {
   files_to_copy <- c(
     "run_heellife.R" = scripts$scraper,
     "send_emails.R" = scripts$email_sender,
+    "run_dept_contacts.R" = scripts$dept_contacts,
+    "send_dept_emails.R" = scripts$dept_emails,
     "env_example.txt" = scripts$env_example,
     "examples_README.md" = scripts$readme
   )
@@ -101,26 +113,23 @@ copy_heellife_examples <- function(overwrite = FALSE) {
     
     if (file.exists(source_file)) {
       if (file.exists(dest_file) && !overwrite) {
-        cat("Skipping", dest_file, "(already exists, use overwrite = TRUE)\n")
+        message("Skipping ", dest_file, " (exists and overwrite = FALSE)")
         results[i] <- FALSE
       } else {
-        success <- file.copy(source_file, dest_file, overwrite = overwrite)
-        if (success) {
-          cat("Copied", dest_file, "\n")
+        tryCatch({
+          file.copy(source_file, dest_file, overwrite = overwrite)
           results[i] <- TRUE
-        } else {
-          cat("Failed to copy", dest_file, "\n")
+          message("Copied: ", dest_file)
+        }, error = function(e) {
+          message("Error copying ", dest_file, ": ", e$message)
           results[i] <- FALSE
-        }
+        })
       }
     } else {
-      cat("Source file not found:", source_file, "\n")
+      message("Source file not found: ", source_file)
       results[i] <- FALSE
     }
   }
   
-  cat("\nFiles copied to:", getwd(), "\n")
-  cat("Make scripts executable: chmod +x *.R\n")
-  
-  invisible(results)
+  return(results)
 }

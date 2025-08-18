@@ -17,13 +17,15 @@ Imports:
     xml2,
     netstat,
     purrr,
-    readr
+    readr,
+    stringr
 Suggests: 
     dotenv,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),
-    tibble
+    tibble,
+    gmailr
 Additional_repositories: 
     https://cran.r-project.org
 VignetteBuilder: knitr
