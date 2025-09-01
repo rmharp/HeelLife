@@ -3,9 +3,6 @@
 \name{copy_heellife_examples}
 \alias{copy_heellife_examples}
 \title{Copy Example Scripts to Working Directory}
-\description{
-Copies the example scripts to your current working directory for easy access.
-}
 \usage{
 copy_heellife_examples(overwrite = FALSE)
 }
@@ -14,6 +11,9 @@ copy_heellife_examples(overwrite = FALSE)
 }
 \value{
 Logical vector indicating which files were copied successfully
+}
+\description{
+Copies the example scripts to your current working directory for easy access.
 }
 \examples{
 # Copy example scripts to current directory

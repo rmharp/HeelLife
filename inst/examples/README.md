@@ -89,7 +89,8 @@ A script to send emails to UNC department contacts using UNC HeelMail web interf
 
 **Features:**
 - Reads department contacts from CSV file
-- Interactive email composition
+- **Rich Text GUI Email Composer** - Compose emails with formatting (bold, italic, underline, fonts, sizes, colors)
+- Interactive email composition options (GUI, console, or default template)
 - Professional HTML email templates
 - Test email functionality
 - UNC HeelMail integration (no API setup required)

@@ -42,38 +42,86 @@ password <- readline("UNC password: ")
 cat("\nEnter email details:\n")
 subject <- readline("Email subject: ")
 
-cat("\n📝 Email Content\n")
-cat("================\n")
-cat("Enter your custom message (press Enter twice when done):\n")
-custom_message <- ""
-while (TRUE) {
-  line <- readline()
-  if (line == "") {
-    if (custom_message == "") {
-      custom_message <- readline("Please enter at least one line of message: ")
-    } else {
-      break
-    }
+cat("\n📝 Email Content Options\n")
+cat("=======================\n")
+cat("Choose how you want to compose your email:\n")
+cat("1. Use the GUI email composer (recommended)\n")
+cat("2. Type message in console\n")
+cat("3. Use default template\n\n")
+
+email_option <- readline("Enter your choice (1-3): ")
+
+if (email_option == "1") {
+  # Use GUI composer
+  cat("\n🎨 Opening GUI email composer...\n")
+  cat("A web browser will open with the email composer.\n")
+  cat("Compose your email with rich text formatting, then click 'Save Draft'.\n\n")
+  
+  email_html <- compose_email_gui(
+    initial_text = paste0("Dear Department,\n\n"),
+    window_title = "HeelMail Email Composer"
+  )
+  
+  if (!is.null(email_html)) {
+    email_body <- email_html
+    cat("✅ Email composed successfully using GUI!\n\n")
   } else {
-    custom_message <- paste0(custom_message, if (custom_message != "") "\n" else "", line)
+    cat("❌ Email composition was cancelled. Using default template.\n\n")
+    email_body <- create_dept_email_template(
+      from_name = username,
+      reply_to_email = paste0(username, "@unc.edu"),
+      custom_message = "I'm reaching out to you regarding an important matter.",
+      signature_title = "",
+      organization_name = ""
+    )
   }
+  
+} else if (email_option == "2") {
+  # Type message in console
+  cat("\n📝 Email Content\n")
+  cat("================\n")
+  cat("Enter your custom message (press Enter twice when done):\n")
+  custom_message <- ""
+  while (TRUE) {
+    line <- readline()
+    if (line == "") {
+      if (custom_message == "") {
+        custom_message <- readline("Please enter at least one line of message: ")
+      } else {
+        break
+      }
+    } else {
+      custom_message <- paste0(custom_message, if (custom_message != "") "\n" else "", line)
+    }
+  }
+
+  # Get additional signature information
+  cat("\n📋 Signature Information\n")
+  cat("========================\n")
+  signature_title <- readline("Your title/position (optional): ")
+  organization_name <- readline("Your organization (optional): ")
+
+  # Create the email template
+  cat("\n🔧 Creating email template...\n")
+  email_body <- create_dept_email_template(
+    from_name = username,
+    reply_to_email = paste0(username, "@unc.edu"),
+    custom_message = custom_message,
+    signature_title = signature_title,
+    organization_name = organization_name
+  )
+  
+} else {
+  # Use default template
+  cat("\n📝 Using default email template...\n")
+  email_body <- create_dept_email_template(
+    from_name = username,
+    reply_to_email = paste0(username, "@unc.edu"),
+    custom_message = "I'm reaching out to you regarding an important matter.",
+    signature_title = "",
+    organization_name = ""
+  )
 }
-
-# Get additional signature information
-cat("\n📋 Signature Information\n")
-cat("========================\n")
-signature_title <- readline("Your title/position (optional): ")
-organization_name <- readline("Your organization (optional): ")
-
-# Create the email template
-cat("\n🔧 Creating email template...\n")
-email_body <- create_dept_email_template(
-  from_name = username,
-  reply_to_email = paste0(username, "@unc.edu"),
-  custom_message = custom_message,
-  signature_title = signature_title,
-  organization_name = organization_name
-)
 
 cat("✅ Email template created successfully!\n\n")
 

@@ -1,16 +1,16 @@
 #' Scrape UNC Chapel Hill Student Organization Contacts
 #'
-#' This function orchestrates the web scraping process for the UNC 'Heel Life'
+#' This function orchestrates the web scraping process for the UNC 'Heel Life'.
 #' website. It requires user credentials and interactive MFA input. It automates
 #' logging in, loading all organization pages, and then iterating through each
 #' organization to scrape contact information for its members.
 #'
 #' @details
-#' The function requires Firefox to be installed on the user's system as it uses
+#' The function requires Firefox to be installed on the user's system as it uses.
 #' the 'firefox' driver for `RSelenium`. The process is interactive because it
 #' prompts the user to enter a Multi-Factor Authentication (MFA) code sent via text.
 #'
-#' The scraping process involves:
+#' The scraping process involves.
 #' 1.  Starting a Selenium server and Firefox browser.
 #' 2.  Navigating to the Heel Life login page.
 #' 3.  Submitting user credentials.
@@ -62,7 +62,7 @@
 
 #' Safely start RSelenium with Firefox, avoiding PhantomJS dependencies
 #' 
-#' This function starts RSelenium with Firefox while explicitly avoiding
+#' This function starts RSelenium with Firefox while explicitly avoiding.
 #' any PhantomJS driver downloads that can cause connection errors.
 #' 
 #' @param port The port to use for the Selenium server
@@ -101,9 +101,9 @@
 #   return(rD)
 # }
 
-#' Alternative Selenium startup that completely bypasses driver downloads
+#' Alternative Selenium startup that completely bypasses driver downloads.
 #' 
-#' This function uses a different approach to start Selenium without
+#' This function uses a different approach to start Selenium without.
 #' triggering any driver download attempts.
 #' 
 #' @param port The port to use for the Selenium server
@@ -330,11 +330,11 @@ get_unc_contacts <- function(username, password, output_file = "unc_contacts.csv
 
 #' Scrape UNC Department Contacts
 #'
-#' This function scrapes contact information for Directors of Undergraduate Studies (DUS)
+#' .This function scrapes contact information for Directors of Undergraduate Studies (DUS).
 #' and Student Services Managers (SSM) from the UNC curricula website.
 #'
 #' @details
-#' The function scrapes the UNC departmental contacts page to extract information about
+#' .The function scrapes the UNC departmental contacts page to extract information about.
 #' Directors of Undergraduate Studies and Student Services Managers. It returns a data frame
 #' with department names, roles, and email addresses.
 #'
@@ -458,11 +458,11 @@ get_unc_dept_contacts <- function(output_file = NULL) {
 
 #' Send Emails to UNC Department Contacts
 #'
-#' This function sends emails to Directors of Undergraduate Studies (DUS) and 
+#' .This function sends emails to Directors of Undergraduate Studies (DUS) and 
 #' Student Services Managers (SSM) at UNC departments.
 #'
 #' @details
-#' The function requires Gmail API setup and authentication. It can send emails to
+#' .The function requires Gmail API setup and authentication. It can send emails to
 #' all department contacts or start from a specific index. It includes rate limiting
 #' checks and supports HTML email content.
 #'
@@ -1219,4 +1219,325 @@ send_dept_emails_unified <- function(contacts_df, method = "gmail", ...) {
   } else if (method == "heelmail") {
     send_dept_emails_heelmail(contacts_df = contacts_df, ...)
   }
+}
+
+#' Compose Email with Rich Text GUI
+#'
+#' Opens an interactive GUI for composing emails with rich text formatting options.
+#' Users can format text with bold, italic, underline, different fonts, and font sizes,
+#' then save the composed email as HTML content for use with email functions.
+#'
+#' @details
+#' This function creates a Shiny web application that provides a familiar email
+#' composition experience similar to popular email clients. Users can:
+#' - Type and format email content with rich text options
+#' - Preview the formatted email in real-time
+#' - Save the email as a draft (returns HTML content)
+#' - Cancel composition (returns NULL)
+#'
+#' The GUI includes:
+#' - Rich text editor with formatting toolbar
+#' - Real-time HTML preview
+#' - Font family and size selection
+#' - Text alignment options
+#' - Color picker for text
+#' - Save draft and cancel buttons
+#'
+#' @param initial_text Optional initial text to pre-populate the editor
+#' @param window_title Title for the GUI window (default: "Email Composer")
+#' @return HTML string of the composed email if saved, NULL if cancelled
+#' @import shiny
+#' @export
+#' @examples
+#' \dontrun{
+#' # Open the email composer GUI
+#' email_html <- compose_email_gui()
+#' 
+#' # If email was composed and saved, use it with your email functions
+#' if (!is.null(email_html)) {
+#'   send_dept_emails_heelmail(
+#'     contacts_df = contacts,
+#'     username = "your_onyen",
+#'     password = "your_password",
+#'     subject = "Important Announcement",
+#'     email_body = email_html
+#'   )
+#' }
+#' 
+#' # Pre-populate with some text
+#' email_html <- compose_email_gui(
+#'   initial_text = "Hello,\n\nThis is a test email."
+#' )
+#' }
+compose_email_gui <- function(initial_text = "", window_title = "Email Composer") {
+  
+  # Check if shiny and shinyjs are available
+  if (!requireNamespace("shiny", quietly = TRUE)) {
+    stop("shiny package is required. Install with: install.packages('shiny')")
+  }
+  
+  if (!requireNamespace("shinyjs", quietly = TRUE)) {
+    stop("shinyjs package is required. Install with: install.packages('shinyjs')")
+  }
+  
+
+  
+  # Initialize result variable
+  result <- NULL
+  
+  # UI definition
+  ui <- shiny::fluidPage(
+    shinyjs::useShinyjs(),
+    shiny::titlePanel(window_title),
+    
+    shiny::fluidRow(
+      shiny::column(12,
+        # Formatting toolbar
+        shiny::wellPanel(
+          shiny::fluidRow(
+            shiny::column(2,
+              shiny::selectInput("font_family", "Font:", 
+                choices = c("Arial" = "Arial", "Times New Roman" = "Times New Roman", 
+                           "Courier New" = "Courier New", "Georgia" = "Georgia",
+                           "Verdana" = "Verdana", "Helvetica" = "Helvetica"),
+                selected = "Arial", width = "100%")
+            ),
+            shiny::column(2,
+              shiny::selectInput("font_size", "Size:", 
+                choices = c("8pt" = "8pt", "10pt" = "10pt", "12pt" = "12pt", 
+                           "14pt" = "14pt", "16pt" = "16pt", "18pt" = "18pt",
+                           "20pt" = "20pt", "24pt" = "24pt", "28pt" = "28pt"),
+                selected = "12pt", width = "100%")
+            ),
+            shiny::column(2,
+              shiny::selectInput("text_align", "Align:", 
+                choices = c("Left" = "left", "Center" = "center", 
+                           "Right" = "right", "Justify" = "justify"),
+                selected = "left", width = "100%")
+            ),
+            shiny::column(2,
+              shiny::selectInput("text_color", "Color:", 
+                choices = c("Black" = "#000000", "Blue" = "#0000FF", "Red" = "#FF0000", 
+                           "Green" = "#008000", "Purple" = "#800080", "Orange" = "#FFA500",
+                           "Brown" = "#A52A2A", "Gray" = "#808080"),
+                selected = "#000000", width = "100%")
+            ),
+            shiny::column(4,
+              shiny::div(style = "margin-top: 20px;",
+                shiny::actionButton("bold", "B", style = "font-weight: bold; width: 40px;"),
+                shiny::actionButton("italic", "I", style = "font-style: italic; width: 40px;"),
+                shiny::actionButton("underline", "U", style = "text-decoration: underline; width: 40px;"),
+                shiny::actionButton("clear_format", "Clear", style = "width: 60px;")
+              )
+            )
+          )
+        ),
+        
+        # Editor and preview tabs
+        shiny::tabsetPanel(
+          shiny::tabPanel("Compose",
+            shiny::fluidRow(
+              shiny::column(12,
+                shiny::textAreaInput("email_content", "Email Content:", 
+                  value = initial_text, rows = 15, width = "100%",
+                  placeholder = "Type your email content here...")
+              )
+            )
+          ),
+          shiny::tabPanel("Preview",
+            shiny::fluidRow(
+              shiny::column(12,
+                shiny::div(style = "border: 1px solid #ccc; padding: 20px; min-height: 300px; background: white;",
+                  shiny::uiOutput("html_preview")
+                )
+              )
+            )
+          )
+        ),
+        
+        # Action buttons
+        shiny::fluidRow(
+          shiny::column(12, style = "margin-top: 20px; text-align: center;",
+            shiny::actionButton("save_draft", "Save Draft", 
+              class = "btn-primary", style = "margin-right: 10px;"),
+            shiny::actionButton("cancel", "Cancel", 
+              class = "btn-default")
+          )
+        )
+      )
+    )
+  )
+  
+  # Server logic
+  server <- function(input, output, session) {
+    
+    # Initialize editor content
+    shiny::observe({
+      if (nchar(initial_text) > 0) {
+        shiny::updateTextAreaInput(session, "email_content", value = initial_text)
+      }
+    })
+    
+    # Formatting buttons
+    shiny::observeEvent(input$bold, {
+      shinyjs::runjs("
+        var textarea = document.getElementById('email_content');
+        var start = textarea.selectionStart;
+        var end = textarea.selectionEnd;
+        var text = textarea.value;
+        var before = text.substring(0, start);
+        var selected = text.substring(start, end);
+        var after = text.substring(end);
+        
+        if (start === end) {
+          textarea.value = before + '**' + selected + '**' + after;
+          textarea.selectionStart = start + 2;
+          textarea.selectionEnd = end + 2;
+        } else {
+          textarea.value = before + '**' + selected + '**' + after;
+          textarea.selectionStart = start;
+          textarea.selectionEnd = end + 4;
+        }
+        textarea.focus();
+      ")
+    })
+    
+    shiny::observeEvent(input$italic, {
+      shinyjs::runjs("
+        var textarea = document.getElementById('email_content');
+        var start = textarea.selectionStart;
+        var end = textarea.selectionEnd;
+        var text = textarea.value;
+        var before = text.substring(0, start);
+        var selected = text.substring(start, end);
+        var after = text.substring(end);
+        
+        if (start === end) {
+          textarea.value = before + '*' + selected + '*' + after;
+          textarea.selectionStart = start + 1;
+          textarea.selectionEnd = end + 1;
+        } else {
+          textarea.value = before + '*' + selected + '*' + after;
+          textarea.selectionStart = start;
+          textarea.selectionEnd = end + 2;
+        }
+        textarea.focus();
+      ")
+    })
+    
+    shiny::observeEvent(input$underline, {
+      shinyjs::runjs("
+        var textarea = document.getElementById('email_content');
+        var start = textarea.selectionStart;
+        var end = textarea.selectionEnd;
+        var text = textarea.value;
+        var before = text.substring(0, start);
+        var selected = text.substring(start, end);
+        var after = text.substring(end);
+        
+        if (start === end) {
+          textarea.value = before + '_' + selected + '_' + after;
+          textarea.selectionStart = start + 1;
+          textarea.selectionEnd = end + 1;
+        } else {
+          textarea.value = before + '_' + selected + '_' + after;
+          textarea.selectionStart = start;
+          textarea.selectionEnd = end + 2;
+        }
+        textarea.focus();
+      ")
+    })
+    
+    shiny::observeEvent(input$clear_format, {
+      shinyjs::runjs("
+        var textarea = document.getElementById('email_content');
+        var text = textarea.value;
+        text = text.replace(/\\*\\*([^*]+)\\*\\*/g, '$1');
+        text = text.replace(/\\*([^*]+)\\*/g, '$1');
+        text = text.replace(/_([^_]+)_/g, '$1');
+        textarea.value = text;
+        textarea.focus();
+      ")
+    })
+    
+    # HTML preview
+    output$html_preview <- shiny::renderUI({
+      content <- input$email_content
+      if (nchar(content) == 0) {
+        return(shiny::div(style = "color: #999; font-style: italic;", "No content to preview"))
+      }
+      
+      # Convert markdown-style formatting to HTML
+      html_content <- content
+      html_content <- gsub("\\*\\*([^*]+)\\*\\*", "<strong>\\1</strong>", html_content)
+      html_content <- gsub("\\*([^*]+)\\*", "<em>\\1</em>", html_content)
+      html_content <- gsub("_([^_]+)_", "<u>\\1</u>", html_content)
+      html_content <- gsub("\n", "<br>", html_content)
+      
+      # Apply selected formatting
+      style <- paste0(
+        "font-family: ", input$font_family, "; ",
+        "font-size: ", input$font_size, "; ",
+        "text-align: ", input$text_align, "; ",
+        "color: ", input$text_color, ";"
+      )
+      
+      shiny::div(
+        style = style,
+        shiny::HTML(html_content)
+      )
+    })
+    
+    # Save draft
+    shiny::observeEvent(input$save_draft, {
+      content <- input$email_content
+      if (nchar(trimws(content)) == 0) {
+        shiny::showNotification("Please enter some content before saving.", type = "warning")
+        return()
+      }
+      
+      # Convert to HTML
+      html_content <- content
+      html_content <- gsub("\\*\\*([^*]+)\\*\\*", "<strong>\\1</strong>", html_content)
+      html_content <- gsub("\\*([^*]+)\\*", "<em>\\1</em>", html_content)
+      html_content <- gsub("_([^_]+)_", "<u>\\1</u>", html_content)
+      html_content <- gsub("\n", "<br>", html_content)
+      
+      # Apply formatting
+      html_content <- paste0(
+        "<html><body><div style='",
+        "font-family: ", input$font_family, "; ",
+        "font-size: ", input$font_size, "; ",
+        "text-align: ", input$text_align, "; ",
+        "color: ", input$text_color, ";",
+        "'>",
+        html_content,
+        "</div></body></html>"
+      )
+      
+      # Store result and close
+      result <<- html_content
+      shiny::stopApp()
+    })
+    
+    # Cancel
+    shiny::observeEvent(input$cancel, {
+      result <<- NULL
+      shiny::stopApp()
+    })
+    
+    # Handle window close
+    session$onSessionEnded(function() {
+      if (is.null(result)) {
+        result <<- NULL
+      }
+    })
+  }
+  
+  # Run the app
+  shiny::runApp(shiny::shinyApp(ui = ui, server = server), 
+                launch.browser = TRUE, quiet = TRUE)
+  
+  # Return the result
+  return(result)
 }

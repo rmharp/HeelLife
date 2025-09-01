@@ -3,11 +3,11 @@
 \name{show_heellife_examples}
 \alias{show_heellife_examples}
 \title{Show Example Scripts Information}
-\description{
-Displays information about the available example scripts and how to use them.
-}
 \usage{
 show_heellife_examples()
+}
+\description{
+Displays information about the available example scripts and how to use them.
 }
 \examples{
 # Show information about example scripts

@@ -3,16 +3,16 @@
 \name{heellife_examples}
 \alias{heellife_examples}
 \title{Get Path to Example Scripts}
-\description{
-Returns the path to the example scripts included with the HeelLife package.
-These scripts demonstrate how to use the package for scraping contacts
-and sending emails.
-}
 \usage{
 heellife_examples()
 }
 \value{
 A list containing paths to example scripts
+}
+\description{
+Returns the path to the example scripts included with the HeelLife package.
+These scripts demonstrate how to use the package for scraping contacts
+and sending emails.
 }
 \examples{
 # Get paths to example scripts
@@ -24,4 +24,7 @@ system(paste("Rscript", scripts$scraper))
 
 # Run the email sender example
 system(paste("Rscript", scripts$email_sender))
+
+# Run the department contacts example
+system(paste("Rscript", scripts$dept_contacts))
 }

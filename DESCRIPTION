@@ -18,7 +18,9 @@ Imports:
     netstat,
     purrr,
     readr,
-    stringr
+    stringr,
+    shiny,
+    shinyjs
 Suggests: 
     dotenv,
     knitr,

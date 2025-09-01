@@ -43,6 +43,16 @@ For department contacts, use `get_unc_dept_contacts()` to scrape DUS and SSM con
 - **UNC HeelMail**: Use `send_dept_emails_heelmail()` (uses UNC credentials, no API setup)
 - **Unified Interface**: Use `send_dept_emails_unified()` to choose your preferred method
 
+### 3. Rich Text Email Composer
+
+The package now includes a **Rich Text Email Composer GUI** (`compose_email_gui()`) that allows you to:
+- Compose emails with a familiar interface similar to popular email clients
+- Apply formatting (bold, italic, underline, fonts, sizes, colors, alignment)
+- Preview your formatted email in real-time
+- Save drafts as HTML content for use with your email functions
+
+This eliminates the need to manually write HTML or provide plain text messages when sending emails.
+
 ### Quick Start with Example Scripts
 
 The package includes ready-to-use example scripts in `inst/examples/`:
@@ -100,7 +110,30 @@ dept_contacts <- get_unc_dept_contacts(output_file = "dept_contacts.csv")
 
 # View the scraped data
 print(head(dept_contacts))
+
+### Composing Rich Text Emails
+
+The package now includes a rich text email composer that makes it easy to create formatted emails:
+
+```r
+# Compose a rich text email using the GUI
+email_html <- compose_email_gui(
+  initial_text = "Dear Department,\n\nWe would like to invite you to our upcoming event."
+)
+
+# Send the formatted email if composition was successful
+if (!is.null(email_html)) {
+  send_dept_emails_heelmail(
+    contacts_df = dept_contacts,
+    username = "your_onyen",
+    password = "your_password",
+    subject = "Event Invitation",
+    email_body = email_html
+  )
+}
 ```
+
+The GUI provides formatting options like bold, italic, underline, fonts, sizes, colors, and alignment. See `EMAIL_COMPOSER_README.md` for detailed usage instructions.
 
 ### Sending Emails to Departments
 
