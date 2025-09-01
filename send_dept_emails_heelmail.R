@@ -150,31 +150,88 @@ cat("Subject:", subject, "\n")
 cat("High Importance:", if (high_importance) "Yes" else "No", "\n")
 cat("Body preview (first 200 chars):", substr(email_body, 1, 200), "...\n\n")
 
-# Ask for test email
-cat("🧪 Testing\n")
-cat("==========\n")
-test_email <- readline("Enter a test email address (or press Enter to skip testing): ")
+# 🧪 TESTING SECTION - SEND TO YOURSELF FIRST
+cat("\n🧪 TESTING SECTION - SEND TO YOURSELF FIRST\n")
+cat("============================================\n")
+cat("⚠️  IMPORTANT: Always test with yourself before sending to all departments!\n")
+cat("This helps you:\n")
+cat("• Verify the email looks correct\n")
+cat("• Check formatting and content\n")
+cat("• Ensure HeelMail is working properly\n")
+cat("• Avoid sending mistakes to all departments\n\n")
+
+test_email <- readline("Enter YOUR email address for testing (e.g., your_onyen@unc.edu): ")
 
 if (test_email != "") {
   cat("\n📧 Sending test email to:", test_email, "\n")
+  cat("This will send ONLY to you - no other emails will be sent yet.\n\n")
   
-  tryCatch({
-    send_dept_emails_heelmail(
-      contacts_df = dept_contacts,
-      username = username,
-      password = password,
-      subject = subject,
-      email_body = email_body,
-      test_email = test_email,
-      cc_emails = cc_emails,
-      high_importance = high_importance
-    )
-    cat("✅ Test email sent successfully!\n\n")
-  }, error = function(e) {
-    cat("❌ Error sending test email:", e$message, "\n")
-    cat("Please check your UNC credentials and internet connection.\n")
-    quit(status = 1)
-  })
+  # Confirm test email
+  cat("Confirm test email details:\n")
+  cat("From:", username, "@unc.edu\n")
+  cat("To:", test_email, "\n")
+  cat("Subject:", subject, "\n")
+  cat("High Importance:", if (high_importance) "Yes" else "No", "\n")
+  if (!is.null(cc_emails)) {
+    cat("CC:", paste(cc_emails, collapse = ", "), "\n")
+  }
+  cat("\nProceed with test email? (y/N): ")
+  
+  test_confirm <- readline()
+  if (tolower(test_confirm) == "y") {
+    cat("\n📧 Sending test email...\n")
+    
+    tryCatch({
+      send_dept_emails_heelmail(
+        contacts_df = dept_contacts,
+        username = username,
+        password = password,
+        subject = subject,
+        email_body = email_body,
+        test_email = test_email,
+        cc_emails = cc_emails,
+        high_importance = high_importance
+      )
+      cat("✅ Test email sent successfully!\n\n")
+      
+      # Ask if user wants to review before proceeding
+      cat("📋 Test Email Review\n")
+      cat("====================\n")
+      cat("Please check your email to ensure:\n")
+      cat("• Content looks correct\n")
+      cat("• Formatting is as expected\n")
+      cat("• Subject line is appropriate\n")
+      cat("• No typos or errors\n\n")
+      
+      review_ok <- readline("Does the test email look good? Ready to proceed? (y/N): ")
+      if (tolower(review_ok) != "y") {
+        cat("❌ Test email review failed. Please fix any issues and run the script again.\n")
+        quit(status = 0)
+      }
+      
+    }, error = function(e) {
+      cat("❌ Error sending test email:", e$message, "\n")
+      cat("Please check your UNC credentials and internet connection.\n")
+      cat("Common issues:\n")
+      cat("• Firefox browser not installed\n")
+      cat("• UNC credentials incorrect\n")
+      cat("• MFA code not entered\n")
+      cat("• Network connectivity issues\n\n")
+      quit(status = 1)
+    })
+  } else {
+    cat("❌ Test email cancelled. Please run the script again.\n")
+    quit(status = 0)
+  }
+} else {
+  cat("⚠️  WARNING: No test email provided!\n")
+  cat("It's highly recommended to test first. Continue anyway? (y/N): ")
+  continue_anyway <- readline()
+  if (tolower(continue_anyway) != "y") {
+    cat("❌ Script cancelled. Please run again with a test email.\n")
+    quit(status = 0)
+  }
+  cat("⚠️  Proceeding without testing - this is not recommended!\n\n")
 }
 
 # Confirm before sending to all departments

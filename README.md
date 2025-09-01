@@ -191,6 +191,37 @@ send_dept_emails_heelmail(
 )
 ```
 
+### 🧪 Testing Workflow - Always Test First!
+
+**⚠️ IMPORTANT: Always test with yourself before sending to all departments!**
+
+The HeelMail scripts now include a built-in testing workflow:
+
+```r
+# Test with just yourself first
+send_dept_emails_heelmail(
+  contacts_df = dept_contacts,
+  username = "your_onyen",
+  password = "your_password",
+  subject = "TEST EMAIL - Please Review",
+  email_body = email_html,
+  test_email = "your_email@unc.edu"  # This sends ONLY to you
+)
+```
+
+**Benefits of testing first:**
+- ✅ Verify email formatting looks correct
+- ✅ Check content and subject line
+- ✅ Ensure HeelMail is working properly
+- ✅ Avoid sending mistakes to all departments
+- ✅ Build confidence before mass sending
+
+**Testing workflow:**
+1. **Compose your email** using the GUI composer
+2. **Test with yourself** using the `test_email` parameter
+3. **Review the test email** to ensure everything looks good
+4. **Only then send to all departments**
+
 #### Option 3: Unified Interface
 ```r
 # Choose your preferred method
