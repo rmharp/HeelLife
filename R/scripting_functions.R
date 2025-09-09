@@ -147,6 +147,71 @@ alternative_start_selenium <- function(port = NULL, verbose = FALSE) {
   })
 }
 
+#' Prompt for MFA code using a simple Shiny GUI
+#'
+#' @param window_title Title for the window
+#' @param instruction Instructional text shown above the input
+#' @param timeout_sec Optional timeout in seconds (default 300). Use NULL for no timeout.
+#' @return The 6-digit code as a string, or NULL if cancelled/timeout
+prompt_mfa_code_gui <- function(window_title = "MFA Code",
+                                instruction = "Enter the 6-digit code",
+                                timeout_sec = 300) {
+  if (!requireNamespace("shiny", quietly = TRUE)) {
+    stop("shiny package is required for GUI MFA prompt")
+  }
+
+  code_value <- NULL
+
+  ui <- shiny::fluidPage(
+    shiny::titlePanel(window_title),
+    shiny::div(style = "max-width: 420px; margin: 20px auto;",
+      shiny::p(instruction),
+      shiny::textInput("mfa", label = "MFA Code", value = "", width = "100%", placeholder = "e.g., 123456"),
+      shiny::div(style = "margin-top: 10px;",
+        shiny::actionButton("submit", "Submit", class = "btn-primary", width = "120px"),
+        shiny::actionButton("cancel", "Cancel", style = "margin-left: 10px;", width = "120px")
+      ),
+      shiny::uiOutput("status")
+    )
+  )
+
+  server <- function(input, output, session) {
+    if (!is.null(timeout_sec) && is.finite(timeout_sec)) {
+      shiny::observe({
+        shiny::invalidateLater(1000, session)
+        remaining <- timeout_sec - as.numeric(difftime(Sys.time(), start_time, units = "secs"))
+        if (remaining <= 0) {
+          code_value <<- NULL
+          shiny::stopApp()
+        } else {
+          output$status <- shiny::renderUI({
+            shiny::div(style = "margin-top: 10px; color: #666;", paste0("Time remaining: ", remaining, "s"))
+          })
+        }
+      })
+    }
+
+    shiny::observeEvent(input$submit, {
+      val <- trimws(input$mfa)
+      if (nzchar(val) && grepl("^[0-9]{6}$", val)) {
+        code_value <<- val
+        shiny::stopApp()
+      } else {
+        shiny::showNotification("Please enter a valid 6-digit code", type = "error")
+      }
+    })
+
+    shiny::observeEvent(input$cancel, {
+      code_value <<- NULL
+      shiny::stopApp()
+    })
+  }
+
+  start_time <- Sys.time()
+  shiny::runApp(shiny::shinyApp(ui, server), launch.browser = TRUE, quiet = TRUE)
+  return(code_value)
+}
+
 get_unc_contacts <- function(username, password, output_file = "unc_contacts.csv") {
   
   # Input validation
@@ -967,6 +1032,26 @@ send_dept_emails_heelmail <- function(contacts_df,
             code <- readline(prompt = paste0("Enter the MFA code sent to your phone (attempt ", attempt, "/", max_attempts, "): "))
             code <- trimws(code)
           } else if (is.null(code)) {
+            # Try GUI MFA prompt if available or forced
+            if (nzchar(Sys.getenv("HEELIFE_FORCE_GUI_MFA", "")) || requireNamespace("shiny", quietly = TRUE)) {
+              message("Opening MFA code prompt window...")
+              code <- tryCatch({
+                prompt_mfa_code_gui(
+                  window_title = "HeelMail MFA",
+                  instruction = "Enter the 6-digit code sent to your phone",
+                  timeout_sec = 300
+                )
+              }, error = function(e) {
+                NULL
+              })
+              if (!is.null(code)) {
+                code <- trimws(code)
+              }
+            }
+          }
+
+          # If still no code, fallback to file-based approach
+          if (is.null(code)) {
             # For non-interactive sessions, use a file-based approach
             message("")
             message("=== MFA CODE INPUT INSTRUCTIONS ===")
