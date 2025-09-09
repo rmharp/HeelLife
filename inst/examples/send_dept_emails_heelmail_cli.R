@@ -45,6 +45,7 @@ show_help <- function() {
   cat("  --console               Use console input for email content\n")
   cat("  --template              Use default template\n")
   cat("  --message MESSAGE       Custom message for console/template mode\n")
+  cat("  --mfa-code CODE         MFA code (if not provided, will prompt during execution)\n")
   cat("  --start-index INDEX     Starting department index (default: 1)\n")
   cat("  --help                  Show this help message\n\n")
   cat("Examples:\n")
@@ -84,6 +85,9 @@ parse_args <- function(args) {
       i <- i + 2
     } else if (args[i] == "--message" && i + 1 <= length(args)) {
       result$message <- args[i + 1]
+      i <- i + 2
+    } else if (args[i] == "--mfa-code" && i + 1 <= length(args)) {
+      result$mfa_code <- args[i + 1]
       i <- i + 2
     } else if (args[i] == "--start-index" && i + 1 <= length(args)) {
       result$start_index <- as.numeric(args[i + 1])
@@ -235,7 +239,8 @@ tryCatch({
     email_body = email_body,
     test_email = parsed_args$test_email,
     cc_emails = parsed_args$cc_emails,
-    high_importance = parsed_args$high_importance
+    high_importance = parsed_args$high_importance,
+    mfa_code = parsed_args$mfa_code
   )
   cat("✅ Test email sent successfully!\n\n")
   

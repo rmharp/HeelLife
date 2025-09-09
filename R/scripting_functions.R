@@ -762,7 +762,8 @@ send_dept_emails_heelmail <- function(contacts_df,
                                      test_email = NULL,
                                      cc_emails = NULL,
                                      high_importance = FALSE,
-                                     attachment_paths = NULL) {
+                                     attachment_paths = NULL,
+                                     mfa_code = NULL) {
   
   # Input validation
   if (is.null(contacts_df) || nrow(contacts_df) == 0) {
@@ -920,13 +921,20 @@ send_dept_emails_heelmail <- function(contacts_df,
       Sys.sleep(2)
     }
     
-    # Prompt for MFA code and wait for user input
-    message("Please check your phone for the MFA text message...")
-    message("Waiting for MFA code input...")
-    
-    # Wait for user to provide MFA code
-    message("Please enter your MFA code when prompted...")
-    code <- readline(prompt = "Enter the MFA code sent to your phone: ")
+    # Handle MFA code
+    if (!is.null(mfa_code)) {
+      # MFA code provided as parameter
+      message("Using provided MFA code...")
+      code <- mfa_code
+    } else {
+      # Prompt for MFA code and wait for user input
+      message("Please check your phone for the MFA text message...")
+      message("Waiting for MFA code input...")
+      
+      # Wait for user to provide MFA code
+      message("Please enter your MFA code when prompted...")
+      code <- readline(prompt = "Enter the MFA code sent to your phone: ")
+    }
     
     # Validate the code
     if (is.null(code) || code == "" || length(code) == 0) {
