@@ -179,11 +179,12 @@ prompt_mfa_code_gui <- function(window_title = "MFA Code",
     if (!is.null(timeout_sec) && is.finite(timeout_sec)) {
       shiny::observe({
         shiny::invalidateLater(1000, session)
-        remaining <- timeout_sec - as.numeric(difftime(Sys.time(), start_time, units = "secs"))
-        if (remaining <= 0) {
+        elapsed <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
+        if (elapsed >= timeout_sec) {
           code_value <<- NULL
           shiny::stopApp()
         } else {
+          remaining <- timeout_sec - as.integer(floor(elapsed))
           output$status <- shiny::renderUI({
             shiny::div(style = "margin-top: 10px; color: #666;", paste0("Time remaining: ", remaining, "s"))
           })
@@ -1026,14 +1027,28 @@ send_dept_emails_heelmail <- function(contacts_df,
       
       while (is.null(code) && attempt <= max_attempts) {
         tryCatch({
-          # Try interactive/CLI input when possible
-          if (can_readline && is.null(code)) {
+          # Prefer GUI if explicitly forced
+          if (nzchar(Sys.getenv("HEELIFE_FORCE_GUI_MFA", "")) && is.null(code)) {
+            message("Opening MFA code prompt window...")
+            code <- tryCatch({
+              prompt_mfa_code_gui(
+                window_title = "HeelMail MFA",
+                instruction = "Enter the 6-digit code sent to your phone",
+                timeout_sec = 300
+              )
+            }, error = function(e) {
+              NULL
+            })
+            if (!is.null(code)) {
+              code <- trimws(code)
+            }
+          } else if (can_readline && is.null(code)) {
             flush.console()
             code <- readline(prompt = paste0("Enter the MFA code sent to your phone (attempt ", attempt, "/", max_attempts, "): "))
             code <- trimws(code)
           } else if (is.null(code)) {
             # Try GUI MFA prompt if available or forced
-            if (nzchar(Sys.getenv("HEELIFE_FORCE_GUI_MFA", "")) || requireNamespace("shiny", quietly = TRUE)) {
+            if (requireNamespace("shiny", quietly = TRUE)) {
               message("Opening MFA code prompt window...")
               code <- tryCatch({
                 prompt_mfa_code_gui(
