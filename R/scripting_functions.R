@@ -1289,7 +1289,7 @@ compose_email_gui <- function(initial_text = "", window_title = "Email Composer"
   ui <- shiny::fluidPage(
     shinyjs::useShinyjs(),
     shiny::titlePanel(window_title),
-    shiny::textInput("preview_html_content", "", value = "", style = "display: none;"),
+    shiny::tags$input(id = "preview_html_content", type = "text", value = "", style = "display: none;"),
     
     shiny::fluidRow(
       shiny::column(12,
@@ -1421,21 +1421,39 @@ compose_email_gui <- function(initial_text = "", window_title = "Email Composer"
     shiny::observeEvent(input$bold, {
       shinyjs::runjs("
         document.execCommand('bold', false, null);
-        document.getElementById('editable_preview').focus();
+        var preview = document.getElementById('editable_preview');
+        var htmlEditor = document.getElementById('html_content');
+        preview.focus();
+        
+        // Immediately sync to HTML editor
+        var htmlContent = preview.innerHTML;
+        htmlEditor.value = htmlContent;
       ")
     })
     
     shiny::observeEvent(input$italic, {
       shinyjs::runjs("
         document.execCommand('italic', false, null);
-        document.getElementById('editable_preview').focus();
+        var preview = document.getElementById('editable_preview');
+        var htmlEditor = document.getElementById('html_content');
+        preview.focus();
+        
+        // Immediately sync to HTML editor
+        var htmlContent = preview.innerHTML;
+        htmlEditor.value = htmlContent;
       ")
     })
     
     shiny::observeEvent(input$underline, {
       shinyjs::runjs("
         document.execCommand('underline', false, null);
-        document.getElementById('editable_preview').focus();
+        var preview = document.getElementById('editable_preview');
+        var htmlEditor = document.getElementById('html_content');
+        preview.focus();
+        
+        // Immediately sync to HTML editor
+        var htmlContent = preview.innerHTML;
+        htmlEditor.value = htmlContent;
       ")
     })
     
@@ -1443,14 +1461,45 @@ compose_email_gui <- function(initial_text = "", window_title = "Email Composer"
       # Link button for Rich Preview only
       shinyjs::runjs("
         var preview = document.getElementById('editable_preview');
+        var htmlEditor = document.getElementById('html_content');
+        
+        // Ensure the preview is focused first
+        preview.focus();
+        
+        // Get selection within the preview
         var selection = window.getSelection();
         var selectedText = selection.toString().trim();
+        
+        // Check if selection is within the preview
+        var range = null;
+        if (selection.rangeCount > 0) {
+          range = selection.getRangeAt(0);
+          var container = range.commonAncestorContainer;
+          // Check if the selection is within the preview
+          if (!preview.contains(container) && container !== preview) {
+            // Selection is not in preview, place cursor at end of preview
+            var newRange = document.createRange();
+            newRange.selectNodeContents(preview);
+            newRange.collapse(false);
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+            range = newRange;
+            selectedText = '';
+          }
+        } else {
+          // No selection, place cursor at end of preview
+          var newRange = document.createRange();
+          newRange.selectNodeContents(preview);
+          newRange.collapse(false);
+          selection.addRange(newRange);
+          range = newRange;
+          selectedText = '';
+        }
         
         if (selectedText) {
           // Text is selected, create link with it
           var linkUrl = prompt('Enter the URL for the link:');
           if (linkUrl) {
-            var range = selection.getRangeAt(0);
             var linkElement = document.createElement('a');
             linkElement.href = linkUrl;
             linkElement.textContent = selectedText;
@@ -1462,6 +1511,10 @@ compose_email_gui <- function(initial_text = "", window_title = "Email Composer"
             range.insertNode(linkElement);
             selection.removeAllRanges();
             preview.focus();
+            
+            // Immediately sync to HTML editor
+            var htmlContent = preview.innerHTML;
+            htmlEditor.value = htmlContent;
           }
         } else {
           // No text selected, prompt for both text and URL
@@ -1469,7 +1522,6 @@ compose_email_gui <- function(initial_text = "", window_title = "Email Composer"
           if (linkText) {
             var linkUrl = prompt('Enter the URL for the link:');
             if (linkUrl) {
-              var range = selection.getRangeAt(0);
               var linkElement = document.createElement('a');
               linkElement.href = linkUrl;
               linkElement.textContent = linkText;
@@ -1480,6 +1532,10 @@ compose_email_gui <- function(initial_text = "", window_title = "Email Composer"
               range.insertNode(linkElement);
               selection.removeAllRanges();
               preview.focus();
+              
+              // Immediately sync to HTML editor
+              var htmlContent = preview.innerHTML;
+              htmlEditor.value = htmlContent;
             }
           }
         }
@@ -1595,6 +1651,48 @@ compose_email_gui <- function(initial_text = "", window_title = "Email Composer"
         preview.style.textAlign = '", input$text_align, "';
         preview.style.color = '", input$text_color, "';
       "))
+    })
+    
+    # Sync between Rich Preview and HTML Editor
+    shiny::observe({
+      # Add event listeners for two-way sync
+      shinyjs::runjs("
+        var preview = document.getElementById('editable_preview');
+        var htmlEditor = document.getElementById('html_content');
+        
+        // Function to sync HTML editor from Rich Preview
+        function syncPreviewToHTML() {
+          var htmlContent = preview.innerHTML;
+          if (htmlEditor.value !== htmlContent) {
+            htmlEditor.value = htmlContent;
+          }
+        }
+        
+        // Function to sync Rich Preview from HTML Editor
+        function syncHTMLToPreview() {
+          var htmlContent = htmlEditor.value;
+          if (preview.innerHTML !== htmlContent) {
+            preview.innerHTML = htmlContent;
+          }
+        }
+        
+        // Add event listeners for Rich Preview changes
+        preview.addEventListener('input', syncPreviewToHTML);
+        preview.addEventListener('paste', function() {
+          setTimeout(syncPreviewToHTML, 10);
+        });
+        preview.addEventListener('keyup', syncPreviewToHTML);
+        
+        // Add event listeners for HTML Editor changes
+        htmlEditor.addEventListener('input', syncHTMLToPreview);
+        htmlEditor.addEventListener('paste', function() {
+          setTimeout(syncHTMLToPreview, 10);
+        });
+        htmlEditor.addEventListener('keyup', syncHTMLToPreview);
+        
+        // Initial sync
+        syncPreviewToHTML();
+      ")
     })
     
     # Save draft
