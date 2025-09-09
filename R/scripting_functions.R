@@ -931,9 +931,42 @@ send_dept_emails_heelmail <- function(contacts_df,
       message("Please check your phone for the MFA text message...")
       message("Waiting for MFA code input...")
       
-      # Wait for user to provide MFA code
+      # Use a more reliable method for terminal input
       message("Please enter your MFA code when prompted...")
-      code <- readline(prompt = "Enter the MFA code sent to your phone: ")
+      
+      # Try to detect if we're in an interactive session
+      if (interactive()) {
+        code <- readline(prompt = "Enter the MFA code sent to your phone: ")
+      } else {
+        # Non-interactive session - use scan with proper error handling
+        message("Detected non-interactive session. Using alternative input method...")
+        message("Please type your MFA code and press Enter:")
+        
+        # Create a temporary file for input
+        temp_file <- tempfile(pattern = "mfa_input", fileext = ".txt")
+        
+        # Give user instructions
+        message("")
+        message("=== MFA CODE INPUT INSTRUCTIONS ===")
+        message("1. Check your phone for the MFA text message")
+        message("2. Type the 6-digit code in the terminal")
+        message("3. Press Enter")
+        message("================================")
+        message("")
+        
+        # Try to get input
+        tryCatch({
+          code <- scan(what = character(), nlines = 1, quiet = FALSE)
+          if (length(code) == 0) {
+            code <- NULL
+          } else {
+            code <- code[1]
+          }
+        }, error = function(e) {
+          message("Input method failed. Please try running the script interactively.")
+          code <- NULL
+        })
+      }
     }
     
     # Validate the code
