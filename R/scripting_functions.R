@@ -938,34 +938,38 @@ send_dept_emails_heelmail <- function(contacts_df,
       if (interactive()) {
         code <- readline(prompt = "Enter the MFA code sent to your phone: ")
       } else {
-        # Non-interactive session - use scan with proper error handling
-        message("Detected non-interactive session. Using alternative input method...")
-        message("Please type your MFA code and press Enter:")
-        
-        # Create a temporary file for input
-        temp_file <- tempfile(pattern = "mfa_input", fileext = ".txt")
+        # Non-interactive session - use file-based input method
+        message("Detected non-interactive session. Using file-based input method...")
         
         # Give user instructions
         message("")
         message("=== MFA CODE INPUT INSTRUCTIONS ===")
         message("1. Check your phone for the MFA text message")
-        message("2. Type the 6-digit code in the terminal")
-        message("3. Press Enter")
+        message("2. Create a file called 'mfa_code.txt' in this directory")
+        message("3. Put ONLY the 6-digit code in that file (no spaces, no quotes)")
+        message("4. Save the file and press Enter here")
         message("================================")
         message("")
         
-        # Try to get input
-        tryCatch({
-          code <- scan(what = character(), nlines = 1, quiet = FALSE)
-          if (length(code) == 0) {
+        # Wait for user to create the file
+        message("Waiting for mfa_code.txt file...")
+        readline(prompt = "Press Enter after creating mfa_code.txt: ")
+        
+        # Try to read the file
+        if (file.exists("mfa_code.txt")) {
+          tryCatch({
+            code <- readLines("mfa_code.txt", n = 1, warn = FALSE)
+            code <- trimws(code)
+            file.remove("mfa_code.txt")  # Clean up
+            message("MFA code read from file successfully")
+          }, error = function(e) {
+            message("Error reading mfa_code.txt file:", e$message)
             code <- NULL
-          } else {
-            code <- code[1]
-          }
-        }, error = function(e) {
-          message("Input method failed. Please try running the script interactively.")
+          })
+        } else {
+          message("mfa_code.txt file not found")
           code <- NULL
-        })
+        }
       }
     }
     
