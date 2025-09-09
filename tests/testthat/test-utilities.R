@@ -2,7 +2,7 @@
 
 test_that("Package exports are correct", {
   # Check that the package exports the expected functions
-  expected_functions <- c("get_unc_contacts", "heellife_examples", "show_heellife_examples", "copy_heellife_examples")
+  expected_functions <- c("get_unc_dept_contacts", "heellife_examples", "show_heellife_examples", "copy_heellife_examples")
   
   for (func in expected_functions) {
     expect_true(func %in% ls("package:HeelLife"), 
@@ -11,7 +11,7 @@ test_that("Package exports are correct", {
   
   # Check that we have the expected number of exported functions
   exported_functions <- ls("package:HeelLife")
-  expect_equal(length(exported_functions), 9)
+  expect_equal(length(exported_functions), 10)
 })
 
 test_that("Package namespace is properly configured", {

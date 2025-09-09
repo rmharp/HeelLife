@@ -724,6 +724,7 @@ create_dept_email_template <- function(from_name,
 #' @param cc_emails Optional vector of email addresses to CC
 #' @param high_importance Logical. Should emails be marked as high importance?
 #' @param attachment_paths Optional vector of file paths to attach
+#' @param mfa_code Optional MFA code to bypass interactive input (useful for testing)
 #' @return Invisible NULL. Function prints progress and results.
 #' @import RSelenium
 #' @import dplyr
@@ -931,44 +932,143 @@ send_dept_emails_heelmail <- function(contacts_df,
       message("Please check your phone for the MFA text message...")
       message("Waiting for MFA code input...")
       
-      # Use a more reliable method for terminal input
+      # Always try interactive input first, regardless of session type
       message("Please enter your MFA code when prompted...")
       
-      # Try to detect if we're in an interactive session
-      if (interactive()) {
-        code <- readline(prompt = "Enter the MFA code sent to your phone: ")
-      } else {
-        # Non-interactive session - use file-based input method
-        message("Detected non-interactive session. Using file-based input method...")
-        
-        # Give user instructions
-        message("")
-        message("=== MFA CODE INPUT INSTRUCTIONS ===")
-        message("1. Check your phone for the MFA text message")
-        message("2. Create a file called 'mfa_code.txt' in this directory")
-        message("3. Put ONLY the 6-digit code in that file (no spaces, no quotes)")
-        message("4. Save the file and press Enter here")
-        message("================================")
-        message("")
-        
-        # Wait for user to create the file
-        message("Waiting for mfa_code.txt file...")
-        readline(prompt = "Press Enter after creating mfa_code.txt: ")
-        
-        # Try to read the file
-        if (file.exists("mfa_code.txt")) {
-          tryCatch({
-            code <- readLines("mfa_code.txt", n = 1, warn = FALSE)
-            code <- trimws(code)
-            file.remove("mfa_code.txt")  # Clean up
-            message("MFA code read from file successfully")
-          }, error = function(e) {
-            message("Error reading mfa_code.txt file:", e$message)
+      # Use a more robust input method
+      code <- NULL
+      max_attempts <- 3
+      attempt <- 1
+      
+      while (is.null(code) && attempt <= max_attempts) {
+        tryCatch({
+          # Try interactive input
+          if (interactive()) {
+            code <- readline(prompt = paste0("Enter the MFA code sent to your phone (attempt ", attempt, "/", max_attempts, "): "))
+          } else {
+            # For non-interactive sessions, use a file-based approach
+            message("")
+            message("=== MFA CODE INPUT INSTRUCTIONS ===")
+            message("1. Check your phone for the MFA text message")
+            message("2. A file called 'mfa_code.txt' will be created in this directory")
+            message("3. Edit the file and put ONLY the 6-digit code (no spaces, no quotes)")
+            message("4. Save the file - the script will automatically detect the change")
+            message("5. The file will be automatically deleted after reading")
+            message("================================")
+            message("")
+            
+            # Create the MFA code file with instructions
+            mfa_file_path <- "mfa_code.txt"
+            file_content <- paste0(
+              "# MFA Code Input File\n",
+              "# Replace this line with your 6-digit MFA code\n",
+              "# Example: 123456\n",
+              "# Save this file after entering your code\n",
+              "ENTER_MFA_CODE_HERE"
+            )
+            
+            tryCatch({
+              writeLines(file_content, mfa_file_path)
+              message("Created mfa_code.txt file with instructions")
+              message("Please edit the file and enter your 6-digit MFA code")
+            }, error = function(e) {
+              message("Error creating mfa_code.txt file:", e$message)
+              code <<- NULL
+              return()
+            })
+            
+            # Wait for user to edit the file
+            message("Waiting for you to edit mfa_code.txt and save it...")
+            message("The script will check for changes every 2 seconds...")
+            
+            # Use a loop to wait for the file to be modified
+            file_wait_time <- 0
+            max_wait_time <- 300  # 5 minutes max wait
+            initial_mtime <- file.mtime(mfa_file_path)
+            
+            while (file_wait_time < max_wait_time) {
+              Sys.sleep(2)
+              file_wait_time <- file_wait_time + 2
+              
+              if (file.exists(mfa_file_path)) {
+                current_mtime <- file.mtime(mfa_file_path)
+                if (current_mtime > initial_mtime) {
+                  # File has been modified, try to read it
+                  tryCatch({
+                    file_content <- readLines(mfa_file_path, warn = FALSE)
+                    # Look for a 6-digit code in the file
+                    for (line in file_content) {
+                      line <- trimws(line)
+                      if (grepl("^[0-9]{6}$", line)) {
+                        code <- line
+                        message("MFA code found in file: ", code)
+                        break
+                      }
+                    }
+                    
+                    if (!is.null(code)) {
+                      # Clean up the file
+                      tryCatch({
+                        file.remove(mfa_file_path)
+                        message("MFA code file cleaned up successfully")
+                      }, error = function(e) {
+                        message("Note: Could not delete mfa_code.txt file")
+                      })
+                      break
+                    } else {
+                      message("No valid 6-digit code found in file. Please check and try again.")
+                      message("Make sure the file contains only a 6-digit number (e.g., 123456)")
+                      # Reset the initial modification time to allow another attempt
+                      initial_mtime <- file.mtime(mfa_file_path)
+                    }
+                  }, error = function(e) {
+                    message("Error reading mfa_code.txt file:", e$message)
+                  })
+                }
+              }
+              
+              if (file_wait_time %% 10 == 0) {
+                message("Still waiting for mfa_code.txt to be updated... (", file_wait_time, "s elapsed)")
+                message("Please edit the file and save it with your 6-digit MFA code")
+              }
+            }
+            
+            if (is.null(code)) {
+              message("No MFA code provided after waiting", max_wait_time, "seconds")
+              # Clean up the file
+              if (file.exists(mfa_file_path)) {
+                tryCatch({
+                  file.remove(mfa_file_path)
+                }, error = function(e) {
+                  message("Note: Could not delete mfa_code.txt file")
+                })
+              }
+            }
+          }
+          
+          # Validate the code
+          if (!is.null(code) && nchar(trimws(code)) > 0) {
+            # Check if it looks like a valid MFA code (6 digits)
+            if (grepl("^[0-9]{6}$", trimws(code))) {
+              message("MFA code accepted")
+              break
+            } else {
+              message("Invalid MFA code format. Please enter a 6-digit code.")
+              code <- NULL
+            }
+          } else {
+            message("No MFA code provided.")
             code <- NULL
-          })
-        } else {
-          message("mfa_code.txt file not found")
-          code <- NULL
+          }
+          
+        }, error = function(e) {
+          message("Error during MFA input:", e$message)
+          code <<- NULL
+        })
+        
+        attempt <- attempt + 1
+        if (is.null(code) && attempt <= max_attempts) {
+          message("Please try again...")
         }
       }
     }

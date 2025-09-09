@@ -139,6 +139,14 @@ cc_emails <- if (cc_emails_input != "") {
   NULL
 }
 
+# Optional: Provide MFA code directly (useful for testing)
+mfa_code_input <- readline("MFA code (6 digits, or press Enter to enter interactively): ")
+mfa_code <- if (mfa_code_input != "" && grepl("^[0-9]{6}$", trimws(mfa_code_input))) {
+  trimws(mfa_code_input)
+} else {
+  NULL
+}
+
 # Preview the email
 cat("\n📋 Email Preview\n")
 cat("================\n")
@@ -191,7 +199,8 @@ if (test_email != "") {
         email_body = email_body,
         test_email = test_email,
         cc_emails = cc_emails,
-        high_importance = high_importance
+        high_importance = high_importance,
+        mfa_code = mfa_code
       )
       cat("✅ Test email sent successfully!\n\n")
       
@@ -285,7 +294,8 @@ tryCatch({
     email_body = email_body,
     start_index = start_index,
     cc_emails = cc_emails,
-    high_importance = high_importance
+    high_importance = high_importance,
+    mfa_code = mfa_code
   )
   
   cat("\n✅ All emails sent successfully via HeelMail!\n")

@@ -14,7 +14,8 @@ send_dept_emails_heelmail(
   test_email = NULL,
   cc_emails = NULL,
   high_importance = FALSE,
-  attachment_paths = NULL
+  attachment_paths = NULL,
+  mfa_code = NULL
 )
 }
 \arguments{
@@ -37,6 +38,8 @@ send_dept_emails_heelmail(
 \item{high_importance}{Logical. Should emails be marked as high importance?}
 
 \item{attachment_paths}{Optional vector of file paths to attach}
+
+\item{mfa_code}{Optional MFA code to bypass interactive input (useful for testing)}
 }
 \value{
 Invisible NULL. Function prints progress and results.
