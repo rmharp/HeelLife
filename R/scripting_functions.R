@@ -954,11 +954,16 @@ send_dept_emails_heelmail <- function(contacts_df,
       }, error = function(e) {
         can_readline <- FALSE
       })
+      # Allow CLI override via env var from wrapper scripts
+      if (nzchar(Sys.getenv("HEELIFE_FORCE_CLI", ""))) {
+        can_readline <- TRUE
+      }
       
       while (is.null(code) && attempt <= max_attempts) {
         tryCatch({
           # Try interactive/CLI input when possible
           if (can_readline && is.null(code)) {
+            flush.console()
             code <- readline(prompt = paste0("Enter the MFA code sent to your phone (attempt ", attempt, "/", max_attempts, "): "))
             code <- trimws(code)
           } else if (is.null(code)) {

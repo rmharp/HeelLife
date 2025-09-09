@@ -211,6 +211,9 @@ if (parsed_args$email_mode == "gui") {
 
 cat("✅ Email template created successfully!\n\n")
 
+# Ensure CLI prompts are used for MFA during this run
+Sys.setenv(HEELIFE_FORCE_CLI = "1")
+
 # Preview the email
 cat("📋 Email Preview\n")
 cat("================\n")
