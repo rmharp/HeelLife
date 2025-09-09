@@ -939,13 +939,29 @@ send_dept_emails_heelmail <- function(contacts_df,
       code <- NULL
       max_attempts <- 3
       attempt <- 1
+
+      # Allow providing the code via environment variable for non-interactive use
+      env_mfa_code <- Sys.getenv("MFA_CODE", "")
+      if (nzchar(env_mfa_code)) {
+        message("Using MFA code from environment variable MFA_CODE...")
+        code <- trimws(env_mfa_code)
+      }
+
+      # Detect whether we can read from the terminal (CLI) even if interactive() is FALSE
+      can_readline <- FALSE
+      tryCatch({
+        can_readline <- isTRUE(interactive()) || isTRUE(isatty(stdin()))
+      }, error = function(e) {
+        can_readline <- FALSE
+      })
       
       while (is.null(code) && attempt <= max_attempts) {
         tryCatch({
-          # Try interactive input
-          if (interactive()) {
+          # Try interactive/CLI input when possible
+          if (can_readline && is.null(code)) {
             code <- readline(prompt = paste0("Enter the MFA code sent to your phone (attempt ", attempt, "/", max_attempts, "): "))
-          } else {
+            code <- trimws(code)
+          } else if (is.null(code)) {
             # For non-interactive sessions, use a file-based approach
             message("")
             message("=== MFA CODE INPUT INSTRUCTIONS ===")
