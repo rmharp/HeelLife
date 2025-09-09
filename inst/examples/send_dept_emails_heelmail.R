@@ -7,6 +7,7 @@
 # Load required libraries
 library(HeelLife)
 library(readr)
+library(dplyr)
 
 cat("📧 UNC Department Email Sender via HeelMail\n")
 cat("===========================================\n\n")
