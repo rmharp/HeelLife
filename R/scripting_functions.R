@@ -1324,10 +1324,10 @@ compose_email_gui <- function(initial_text = "", window_title = "Email Composer"
             ),
             shiny::column(4,
               shiny::div(style = "margin-top: 20px;",
-                shiny::actionButton("bold", "B", style = "font-weight: bold; width: 40px;"),
-                shiny::actionButton("italic", "I", style = "font-style: italic; width: 40px;"),
-                shiny::actionButton("underline", "U", style = "text-decoration: underline; width: 40px;"),
-                shiny::actionButton("add_link", "🔗", style = "width: 40px;", title = "Add Link"),
+                shiny::actionButton("bold", "B", style = "font-weight: bold; width: 40px; margin-right: 5px;"),
+                shiny::actionButton("italic", "I", style = "font-style: italic; width: 40px; margin-right: 5px;"),
+                shiny::actionButton("underline", "U", style = "text-decoration: underline; width: 40px; margin-right: 5px;"),
+                shiny::actionButton("add_link", "🔗", style = "width: 40px; margin-right: 5px;", title = "Add Link"),
                 shiny::actionButton("clear_format", "Clear", style = "width: 60px;")
               )
             )
@@ -1348,8 +1348,20 @@ compose_email_gui <- function(initial_text = "", window_title = "Email Composer"
           shiny::tabPanel("Rich Preview",
             shiny::fluidRow(
               shiny::column(12,
-                shiny::div(style = "border: 1px solid #ccc; padding: 20px; min-height: 300px; background: white;",
-                  shiny::uiOutput("html_preview")
+                shiny::div(
+                  shiny::h4("Editable Preview"),
+                  shiny::p("This preview is editable - you can copy-paste formatted content here directly."),
+                  shiny::div(
+                    id = "editable_preview",
+                    style = "border: 1px solid #ccc; padding: 20px; min-height: 300px; background: white; outline: none;",
+                    contenteditable = "true",
+                    shiny::uiOutput("html_preview")
+                  ),
+                  shiny::br(),
+                  shiny::actionButton("update_from_preview", "Update Text from Preview", 
+                    class = "btn-info", style = "margin-right: 10px;"),
+                  shiny::actionButton("copy_preview_html", "Copy HTML", 
+                    class = "btn-success")
                 )
               )
             )
@@ -1474,10 +1486,10 @@ compose_email_gui <- function(initial_text = "", window_title = "Email Composer"
     })
     
     shiny::observeEvent(input$add_link, {
-      # Prompt for link URL
-      link_url <- readline(prompt = "Enter the URL for the link: ")
-      if (nzchar(link_url)) {
-        shinyjs::runjs(paste0("
+      # Use JavaScript prompt instead of readline for better GUI integration
+      shinyjs::runjs("
+        var linkUrl = prompt('Enter the URL for the link:');
+        if (linkUrl) {
           var textarea = document.getElementById('email_content');
           var start = textarea.selectionStart;
           var end = textarea.selectionEnd;
@@ -1490,19 +1502,19 @@ compose_email_gui <- function(initial_text = "", window_title = "Email Composer"
             // No text selected, prompt for link text
             var linkText = prompt('Enter the text to display for the link:');
             if (linkText) {
-              textarea.value = before + '[' + linkText + '](' + link_url + ')' + after;
-              textarea.selectionStart = start + linkText.length + link_url.length + 4;
+              textarea.value = before + '[' + linkText + '](' + linkUrl + ')' + after;
+              textarea.selectionStart = start + linkText.length + linkUrl.length + 4;
               textarea.selectionEnd = textarea.selectionStart;
             }
           } else {
             // Text selected, use it as link text
-            textarea.value = before + '[' + selected + '](' + link_url + ')' + after;
+            textarea.value = before + '[' + selected + '](' + linkUrl + ')' + after;
             textarea.selectionStart = start;
-            textarea.selectionEnd = end + link_url.length + 4;
+            textarea.selectionEnd = end + linkUrl.length + 4;
           }
           textarea.focus();
-        "))
-      }
+        }
+      ")
     })
     
     shiny::observeEvent(input$clear_format, {
@@ -1557,6 +1569,51 @@ compose_email_gui <- function(initial_text = "", window_title = "Email Composer"
       }
     })
     
+    # Update text from editable preview
+    shiny::observeEvent(input$update_from_preview, {
+      shinyjs::runjs("
+        var preview = document.getElementById('editable_preview');
+        var htmlContent = preview.innerHTML;
+        
+        // Convert HTML back to markdown-style text
+        var textContent = htmlContent;
+        textContent = textContent.replace(/<strong>([^<]+)<\\/strong>/g, '**$1**');
+        textContent = textContent.replace(/<em>([^<]+)<\\/em>/g, '*$1*');
+        textContent = textContent.replace(/<u>([^<]+)<\\/u>/g, '_$1_');
+        textContent = textContent.replace(/<a href=\"([^\"]+)\">([^<]+)<\\/a>/g, '[$2]($1)');
+        textContent = textContent.replace(/<br\\/?>/g, '\\n');
+        textContent = textContent.replace(/<p>/g, '');
+        textContent = textContent.replace(/<\\/p>/g, '\\n\\n');
+        textContent = textContent.replace(/<div>/g, '');
+        textContent = textContent.replace(/<\\/div>/g, '\\n');
+        textContent = textContent.replace(/<[^>]+>/g, '');
+        
+        document.getElementById('email_content').value = textContent;
+      ")
+    })
+    
+    # Copy HTML from preview
+    shiny::observeEvent(input$copy_preview_html, {
+      shinyjs::runjs("
+        var preview = document.getElementById('editable_preview');
+        var htmlContent = preview.innerHTML;
+        
+        // Copy to clipboard
+        navigator.clipboard.writeText(htmlContent).then(function() {
+          alert('HTML copied to clipboard!');
+        }).catch(function(err) {
+          // Fallback for older browsers
+          var textArea = document.createElement('textarea');
+          textArea.value = htmlContent;
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+          alert('HTML copied to clipboard!');
+        });
+      ")
+    })
+    
     # HTML preview
     output$html_preview <- shiny::renderUI({
       content <- input$email_content
@@ -1569,7 +1626,7 @@ compose_email_gui <- function(initial_text = "", window_title = "Email Composer"
       html_content <- gsub("\\*\\*([^*]+)\\*\\*", "<strong>\\1</strong>", html_content)
       html_content <- gsub("\\*([^*]+)\\*", "<em>\\1</em>", html_content)
       html_content <- gsub("_([^_]+)_", "<u>\\1</u>", html_content)
-      html_content <- gsub("\\[([^\\]]+)\\]\\(([^)]+)\\)", "<a href=\"\\2\" target=\"_blank\">\\1</a>", html_content)
+      html_content <- gsub("\\[([^\\]]+)\\]\\(([^)]+)\\)", "<a href=\"\\2\" target=\"_blank\" style=\"color: #0066cc; text-decoration: underline;\">\\1</a>", html_content)
       html_content <- gsub("\n", "<br>", html_content)
       
       # Apply selected formatting
