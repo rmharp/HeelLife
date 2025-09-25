@@ -179,14 +179,14 @@ prompt_mfa_code_gui <- function(window_title = "MFA Code",
     if (!is.null(timeout_sec) && is.finite(timeout_sec)) {
       shiny::observe({
         shiny::invalidateLater(1000, session)
-        elapsed <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
-        if (elapsed >= timeout_sec) {
+        elapsed_int <- as.integer(difftime(Sys.time(), start_time, units = "secs"))
+        if (elapsed_int >= timeout_sec) {
           code_value <<- NULL
           shiny::stopApp()
         } else {
-          remaining <- timeout_sec - as.integer(floor(elapsed))
+          remaining_int <- as.integer(max(0, timeout_sec - elapsed_int))
           output$status <- shiny::renderUI({
-            shiny::div(style = "margin-top: 10px; color: #666;", paste0("Time remaining: ", remaining, "s"))
+            shiny::div(style = "margin-top: 10px; color: #666;", paste0("Time remaining: ", remaining_int, "s"))
           })
         }
       })
@@ -519,6 +519,151 @@ get_unc_dept_contacts <- function(output_file = NULL) {
     
   }, error = function(e) {
     stop("Error scraping department contacts: ", e$message)
+  })
+}
+
+#' Scrape UNC AI Experts Directory
+#'
+#' This function scrapes contact information for AI experts from the UNC AI experts directory.
+#' It extracts expert names, departments, and email addresses from the AI experts webpage.
+#'
+#' @details
+#' The function scrapes the UNC AI experts directory page to extract information about
+#' AI experts across various departments. It returns a data frame with expert names,
+#' departments, and email addresses.
+#'
+#' @param output_file Optional path to save the output CSV file. If NULL, no file is saved.
+#' @return A data frame containing the scraped contact information with columns:
+#'   `Name`, `Department`, and `Email`.
+#' @import rvest
+#' @import dplyr
+#' @importFrom readr write_csv
+#' @export
+#' @examples
+#' \dontrun{
+#' # Scrape AI experts
+#' ai_experts <- get_unc_ai_experts()
+#' print(head(ai_experts))
+#' 
+#' # Save to file
+#' ai_experts <- get_unc_ai_experts(output_file = "ai_experts.csv")
+#' }
+get_unc_ai_experts <- function(output_file = NULL) {
+  
+  message("Scraping UNC AI experts directory...")
+  
+  # URL for UNC AI experts directory
+  url <- "https://ai.unc.edu/experts/"
+  
+  tryCatch({
+    # Read the webpage
+    page <- xml2::read_html(url)
+    
+    # Initialize data frame
+    final_table <- data.frame(
+      Name = character(), 
+      Department = character(), 
+      Email = character(), 
+      stringsAsFactors = FALSE
+    )
+    
+    # Extract all email addresses first
+    email_pattern <- "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
+    page_text <- page %>% rvest::html_text()
+    emails <- regmatches(page_text, gregexpr(email_pattern, page_text))[[1]]
+    
+    # Remove duplicates and filter for UNC emails
+    emails <- unique(emails)
+    emails <- emails[grepl("@.*unc\\.edu|@.*duke\\.edu|@.*renci\\.org", emails)]
+    
+    message("Found ", length(emails), " email addresses")
+    
+    # For each email, try to find the associated name and department
+    for (email in emails) {
+      # Look for the email in the HTML and find the surrounding context
+      email_nodes <- page %>% rvest::html_nodes(paste0("a[href='mailto:", email, "']"))
+      
+      if (length(email_nodes) > 0) {
+        # Go up 3 levels to get the expert information container
+        current_element <- email_nodes[[1]]
+        expert_container <- current_element
+        
+        # Go up 3 levels to get to the expert container
+        for (level in 1:3) {
+          expert_container <- expert_container %>% rvest::html_node(xpath = "..")
+        }
+        
+        # Extract text from the expert container
+        expert_text <- expert_container %>% rvest::html_text(trim = TRUE)
+        
+        # Split by lines and clean up
+        lines <- strsplit(expert_text, "\n")[[1]]
+        lines <- trimws(lines)
+        lines <- lines[lines != ""]
+        
+        # Extract name, department, and email from the lines
+        name <- NA
+        department <- NA
+        
+        # The structure is typically:
+        # Line 1: Name
+        # Line 2: Department  
+        # Line 3: Email
+        # Line 4: View Profile link
+        
+        if (length(lines) >= 3) {
+          # First line should be the name
+          potential_name <- lines[1]
+          if (grepl("^[A-Z][a-z]+ [A-Z][a-z]+$", potential_name) && !grepl("@", potential_name)) {
+            name <- potential_name
+          }
+          
+          # Second line should be the department
+          potential_dept <- lines[2]
+          if (grepl("(Studies|Science|School|College|Business|Medicine|Nursing|Pharmacy|Public Health|Information|Library|Education|Journalism|Data Science|Global|Philosophy|Psychology|Neuroscience|Statistics|Operations|Research|RENCI)", potential_dept)) {
+            department <- potential_dept
+          }
+          
+          # Third line should be the email (we already have this)
+          if (lines[3] == email) {
+            # Email matches, we're good
+          }
+        }
+        
+        # If we found a name, add to the table
+        if (!is.na(name) && name != "" && !grepl("(University|Expert|Directory|Provost|Committee|View Profile)", name)) {
+          new_row <- data.frame(
+            Name = name,
+            Department = if (!is.na(department)) department else "Unknown",
+            Email = email,
+            stringsAsFactors = FALSE
+          )
+          final_table <- rbind(final_table, new_row)
+        }
+      }
+    }
+    
+    # Remove duplicates
+    final_table <- final_table[!duplicated(final_table), ]
+    
+    # Remove rows with missing emails or invalid names
+    final_table <- final_table %>%
+      dplyr::filter(!is.na(.data$Email) & .data$Email != "" & 
+                   !is.na(.data$Name) & .data$Name != "" &
+                   !grepl("(University|Expert|Directory|Provost|Committee)", .data$Name))
+    
+    message("Successfully scraped ", nrow(final_table), " AI experts")
+    
+    # Save to file if requested
+    if (!is.null(output_file)) {
+      readr::write_csv(final_table, output_file)
+      message("AI experts saved to: ", output_file)
+    }
+    
+    return(final_table)
+    
+  }, error = function(e) {
+    stop("Error scraping AI experts: ", e$message)
   })
 }
 
