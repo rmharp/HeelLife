@@ -622,9 +622,9 @@ get_unc_ai_experts <- function(output_file = NULL) {
           if (length(lines) >= 3) {
             # First line should be the name
             potential_name <- lines[1]
-            # Updated regex to handle names with multiple parts (e.g., "Daniela De la Parra")
-            # Allow for lowercase words like "de", "la", "van", etc.
-            if (grepl("^[A-Z][a-z]+( [A-Za-z]+)+$", potential_name) && !grepl("@", potential_name)) {
+            # Updated regex to handle names with multiple parts, middle initials, hyphens, and parentheses
+            # Examples: "Daniela De la Parra", "Daniel M. Ringel", "Rei Sanchez-Arias", "Daiwei (David) Zhang"
+            if (grepl("^[A-Z][a-z]+.*[A-Za-z]+$", potential_name) && !grepl("@", potential_name)) {
               name <- potential_name
             }
             
