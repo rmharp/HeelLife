@@ -552,95 +552,142 @@ get_unc_ai_experts <- function(output_file = NULL) {
   
   message("Scraping UNC AI experts directory...")
   
-  # URL for UNC AI experts directory
-  url <- "https://ai.unc.edu/experts/"
+  # Initialize data frame
+  final_table <- data.frame(
+    Name = character(), 
+    Department = character(), 
+    Email = character(), 
+    stringsAsFactors = FALSE
+  )
   
-  tryCatch({
-    # Read the webpage
-    page <- xml2::read_html(url)
+  # Function to scrape a single page
+  scrape_page <- function(url) {
+    message("Scraping page: ", url)
     
-    # Initialize data frame
-    final_table <- data.frame(
-      Name = character(), 
-      Department = character(), 
-      Email = character(), 
-      stringsAsFactors = FALSE
-    )
-    
-    # Extract all email addresses first
-    email_pattern <- "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
-    page_text <- page %>% rvest::html_text()
-    emails <- regmatches(page_text, gregexpr(email_pattern, page_text))[[1]]
-    
-    # Remove duplicates and filter for UNC emails
-    emails <- unique(emails)
-    emails <- emails[grepl("@.*unc\\.edu|@.*duke\\.edu|@.*renci\\.org", emails)]
-    
-    message("Found ", length(emails), " email addresses")
-    
-    # For each email, try to find the associated name and department
-    for (email in emails) {
-      # Look for the email in the HTML and find the surrounding context
-      email_nodes <- page %>% rvest::html_nodes(paste0("a[href='mailto:", email, "']"))
+    tryCatch({
+      # Read the webpage
+      page <- xml2::read_html(url)
       
-      if (length(email_nodes) > 0) {
-        # Go up 3 levels to get the expert information container
-        current_element <- email_nodes[[1]]
-        expert_container <- current_element
+      # Extract all email addresses first
+      email_pattern <- "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
+      page_text <- page %>% rvest::html_text()
+      emails <- regmatches(page_text, gregexpr(email_pattern, page_text))[[1]]
+      
+      # Remove duplicates and filter for UNC emails
+      emails <- unique(emails)
+      emails <- emails[grepl("@.*unc\\.edu|@.*duke\\.edu|@.*renci\\.org", emails)]
+      
+      message("Found ", length(emails), " email addresses on this page")
+      
+      page_table <- data.frame(
+        Name = character(), 
+        Department = character(), 
+        Email = character(), 
+        stringsAsFactors = FALSE
+      )
+      
+      # For each email, try to find the associated name and department
+      for (email in emails) {
+        # Look for the email in the HTML and find the surrounding context
+        email_nodes <- page %>% rvest::html_nodes(paste0("a[href='mailto:", email, "']"))
         
-        # Go up 3 levels to get to the expert container
-        for (level in 1:3) {
-          expert_container <- expert_container %>% rvest::html_node(xpath = "..")
-        }
-        
-        # Extract text from the expert container
-        expert_text <- expert_container %>% rvest::html_text(trim = TRUE)
-        
-        # Split by lines and clean up
-        lines <- strsplit(expert_text, "\n")[[1]]
-        lines <- trimws(lines)
-        lines <- lines[lines != ""]
-        
-        # Extract name, department, and email from the lines
-        name <- NA
-        department <- NA
-        
-        # The structure is typically:
-        # Line 1: Name
-        # Line 2: Department  
-        # Line 3: Email
-        # Line 4: View Profile link
-        
-        if (length(lines) >= 3) {
-          # First line should be the name
-          potential_name <- lines[1]
-          if (grepl("^[A-Z][a-z]+ [A-Z][a-z]+$", potential_name) && !grepl("@", potential_name)) {
-            name <- potential_name
+        if (length(email_nodes) > 0) {
+          # Go up 3 levels to get the expert information container
+          current_element <- email_nodes[[1]]
+          expert_container <- current_element
+          
+          # Go up 3 levels to get to the expert container
+          for (level in 1:3) {
+            expert_container <- expert_container %>% rvest::html_node(xpath = "..")
           }
           
-          # Second line should be the department
-          potential_dept <- lines[2]
-          if (grepl("(Studies|Science|School|College|Business|Medicine|Nursing|Pharmacy|Public Health|Information|Library|Education|Journalism|Data Science|Global|Philosophy|Psychology|Neuroscience|Statistics|Operations|Research|RENCI)", potential_dept)) {
-            department <- potential_dept
+          # Extract text from the expert container
+          expert_text <- expert_container %>% rvest::html_text(trim = TRUE)
+          
+          # Split by lines and clean up
+          lines <- strsplit(expert_text, "\n")[[1]]
+          lines <- trimws(lines)
+          lines <- lines[lines != ""]
+          
+          # Extract name, department, and email from the lines
+          name <- NA
+          department <- NA
+          
+          # The structure is typically:
+          # Line 1: Name
+          # Line 2: Department  
+          # Line 3: Email
+          # Line 4: View Profile link
+          
+          if (length(lines) >= 3) {
+            # First line should be the name
+            potential_name <- lines[1]
+            if (grepl("^[A-Z][a-z]+ [A-Z][a-z]+$", potential_name) && !grepl("@", potential_name)) {
+              name <- potential_name
+            }
+            
+            # Second line should be the department
+            potential_dept <- lines[2]
+            if (grepl("(Studies|Science|School|College|Business|Medicine|Nursing|Pharmacy|Public Health|Information|Library|Education|Journalism|Data Science|Global|Philosophy|Psychology|Neuroscience|Statistics|Operations|Research|RENCI|Law|Faculty Excellence)", potential_dept)) {
+              department <- potential_dept
+            }
+            
+            # Third line should be the email (we already have this)
+            if (lines[3] == email) {
+              # Email matches, we're good
+            }
           }
           
-          # Third line should be the email (we already have this)
-          if (lines[3] == email) {
-            # Email matches, we're good
+          # If we found a name, add to the table
+          if (!is.na(name) && name != "" && !grepl("(University|Expert|Directory|Provost|Committee|View Profile)", name)) {
+            new_row <- data.frame(
+              Name = name,
+              Department = if (!is.na(department)) department else "Unknown",
+              Email = email,
+              stringsAsFactors = FALSE
+            )
+            page_table <- rbind(page_table, new_row)
           }
-        }
-        
-        # If we found a name, add to the table
-        if (!is.na(name) && name != "" && !grepl("(University|Expert|Directory|Provost|Committee|View Profile)", name)) {
-          new_row <- data.frame(
-            Name = name,
-            Department = if (!is.na(department)) department else "Unknown",
-            Email = email,
-            stringsAsFactors = FALSE
-          )
-          final_table <- rbind(final_table, new_row)
         }
       }
+      
+      return(page_table)
+      
+    }, error = function(e) {
+      message("Error scraping page ", url, ": ", e$message)
+      return(data.frame(
+        Name = character(), 
+        Department = character(), 
+        Email = character(), 
+        stringsAsFactors = FALSE
+      ))
+    })
+  }
+  
+  tryCatch({
+    # Start with page 1
+    page1_url <- "https://ai.unc.edu/experts/"
+    page1_data <- scrape_page(page1_url)
+    final_table <- rbind(final_table, page1_data)
+    
+    # Check for page 2
+    page2_url <- "https://ai.unc.edu/experts/page/2/"
+    page2_data <- scrape_page(page2_url)
+    final_table <- rbind(final_table, page2_data)
+    
+    # Check if there are more pages by looking for pagination links
+    # For now, we'll check pages 3 and 4 as well to be thorough
+    for (page_num in 3:4) {
+      page_url <- paste0("https://ai.unc.edu/experts/page/", page_num, "/")
+      page_data <- scrape_page(page_url)
+      
+      # If we get no results, we've probably reached the end
+      if (nrow(page_data) == 0) {
+        message("No more experts found on page ", page_num, ". Stopping pagination.")
+        break
+      }
+      
+      final_table <- rbind(final_table, page_data)
     }
     
     # Remove duplicates
@@ -652,7 +699,7 @@ get_unc_ai_experts <- function(output_file = NULL) {
                    !is.na(.data$Name) & .data$Name != "" &
                    !grepl("(University|Expert|Directory|Provost|Committee)", .data$Name))
     
-    message("Successfully scraped ", nrow(final_table), " AI experts")
+    message("Successfully scraped ", nrow(final_table), " AI experts from all pages")
     
     # Save to file if requested
     if (!is.null(output_file)) {
